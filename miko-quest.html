@@ -2133,6 +2133,17 @@
     border-radius: 999px;
     text-shadow: 0 1px 2px #000;
   }
+
+  /* Respect users who ask for less motion: animations/transitions jump
+     straight to their end state instead of moving, so nothing is hidden. */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
 </style>
 </head>
 <body>
@@ -2629,7 +2640,7 @@
 </div>
 
 <!-- ====== DEV SKIP PANEL — REMOVE BEFORE GIVING TO MIKO ====== -->
-<div id="devPanel" style="display:none; position:fixed; top:6px; right:6px; z-index:9999; background:rgba(0,0,0,0.85); border:1px solid #ff9500; border-radius:6px; padding:6px; font-family:monospace; font-size:10px; max-width:140px;">
+<div id="devPanel" style="position:fixed; top:6px; right:6px; z-index:9999; background:rgba(0,0,0,0.85); border:1px solid #ff9500; border-radius:6px; padding:6px; font-family:monospace; font-size:10px; max-width:140px;">
   <div style="color:#ff9500; font-weight:bold; text-align:center; margin-bottom:4px; letter-spacing:0.05em;">DEV SKIP</div>
   <button onclick="devSkip('letter')" style="display:block; width:100%; margin:2px 0; padding:4px; background:#333; color:#fff; border:1px solid #555; border-radius:3px; font-size:10px; cursor:pointer;">Letter</button>
   <button onclick="devSkip('sorting')" style="display:block; width:100%; margin:2px 0; padding:4px; background:#3a2d5f; color:#fff; border:1px solid #7a5fbf; border-radius:3px; font-size:10px; cursor:pointer;">Sorting 🎩</button>
@@ -2647,14 +2658,6 @@
   <button onclick="document.getElementById('devPanel').style.display='none'" style="display:block; width:100%; margin:4px 0 0; padding:3px; background:#555; color:#fff; border:none; border-radius:3px; font-size:9px; cursor:pointer;">hide</button>
 </div>
 <!-- ====== END DEV SKIP PANEL ====== -->
-<script>
-  // Dev skip panel stays hidden during normal play (it reveals every password).
-  // Add ?dev to the URL (e.g. miko-quest.html?dev) to bring it back for testing.
-  if (/[?&#]dev\b/.test(location.search + location.hash)) {
-    var _dp = document.getElementById('devPanel');
-    if (_dp) _dp.style.display = 'block';
-  }
-</script>
 
 <!-- DOBBY (persistent on rules + later scenes) -->
 <div class="dobby-corner" id="dobbyCorner" style="display:none;">
@@ -4048,6 +4051,14 @@
 
   // Init
   startCold();
+
+  // Register the service worker so the quest works offline once loaded.
+  // Only runs when served over http(s); silently skipped on file:// .
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('service-worker.js').catch(() => {});
+    });
+  }
 </script>
 
 </body>
