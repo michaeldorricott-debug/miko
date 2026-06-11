@@ -2644,7 +2644,7 @@
 <!-- ====== DEV SKIP PANEL — REMOVE BEFORE GIVING TO MIKO ====== -->
 <div id="devPanel" style="position:fixed; top:6px; right:6px; z-index:9999; background:rgba(0,0,0,0.85); border:1px solid #ff9500; border-radius:6px; padding:6px; font-family:monospace; font-size:10px; max-width:140px;">
   <div style="color:#ff9500; font-weight:bold; text-align:center; margin-bottom:4px; letter-spacing:0.05em;">DEV SKIP</div>
-  <button onclick="resetProgress(); location.reload();" style="display:block; width:100%; margin:2px 0 6px; padding:4px; background:#7a0f0f; color:#fff; border:1px solid #ff5252; border-radius:3px; font-size:10px; cursor:pointer; font-weight:bold;">↺ START OVER (clear save)</button>
+  <button onclick="resetProgress(); location.search='?fresh';" style="display:block; width:100%; margin:2px 0 6px; padding:4px; background:#7a0f0f; color:#fff; border:1px solid #ff5252; border-radius:3px; font-size:10px; cursor:pointer; font-weight:bold;">↺ START OVER (clear save)</button>
   <button onclick="devSkip('letter')" style="display:block; width:100%; margin:2px 0; padding:4px; background:#333; color:#fff; border:1px solid #555; border-radius:3px; font-size:10px; cursor:pointer;">Letter</button>
   <button onclick="devSkip('sorting')" style="display:block; width:100%; margin:2px 0; padding:4px; background:#3a2d5f; color:#fff; border:1px solid #7a5fbf; border-radius:3px; font-size:10px; cursor:pointer;">Sorting 🎩</button>
   <button onclick="devSkip('rules')" style="display:block; width:100%; margin:2px 0; padding:4px; background:#333; color:#fff; border:1px solid #555; border-radius:3px; font-size:10px; cursor:pointer;">Rules</button>
@@ -3457,6 +3457,10 @@
   document.addEventListener('DOMContentLoaded', () => {
     // Opening with ?fresh (or ?reset) wipes any saved progress and starts clean.
     if (/[?&](fresh|reset)\b/.test(location.search)) { resetProgress(); return; }
+    // While the dev skip panel is present, never auto-resume — testing should
+    // always begin at the cold open / first map. Auto-resume returns for Miko
+    // automatically once the dev panel is removed.
+    if (document.getElementById('devPanel')) { resetProgress(); return; }
     setTimeout(() => restoreProgress(), 100);
   });
   const FINAL_NARRATION = "Look — the dark one's mark has risen over Victoria Harbour. The lights are beginning to dance. Walk to the water, Miko Takeshi. He is waiting for you.";
