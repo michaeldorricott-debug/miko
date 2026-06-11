@@ -1,0 +1,4037 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>The Order's Quest</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #0a0805; color: #e8d9b0; font-family: 'Georgia', 'Times New Roman', serif; user-select: none; }
+
+  /* Parchment + ink palette */
+  :root {
+    --parchment: #e8d9b0;
+    --parchment-dark: #c4ad7a;
+    --ink: #2b1810;
+    --ink-light: #4a2e1f;
+    --gold: #e8c150;
+    --gold-bright: #ffd966;
+    --gold-soft: #f5deb3;
+    --crimson: #8b0000;
+    --shadow: rgba(10, 8, 5, 0.85);
+  }
+
+  /* Scene wrapper */
+  .scene {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    display: none;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    z-index: 1;
+  }
+  .scene.visible {
+    display: flex !important;
+    z-index: 5;
+  }
+
+  /* Resume overlay — shown after page reload mid-quest */
+  .resume-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: radial-gradient(ellipse at center, #1a0e0e 0%, #000 80%);
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    animation: resume-fade-in 0.6s ease;
+    cursor: pointer;
+  }
+  @keyframes resume-fade-in {
+    from { opacity: 0; } to { opacity: 1; }
+  }
+  .resume-card {
+    background: linear-gradient(135deg, #1a1208 0%, #0d0905 100%);
+    border-radius: 12px;
+    border: 2px solid var(--gold-bright);
+    box-shadow: 0 30px 80px rgba(0,0,0,0.9), 0 0 90px rgba(212,175,55,0.4), inset 0 0 60px rgba(139,90,43,0.2);
+    padding: 36px 28px 30px;
+    max-width: 420px;
+    width: 100%;
+    text-align: center;
+    color: #f4e4b0;
+  }
+  .resume-glyph {
+    font-size: 56px;
+    line-height: 1;
+    margin-bottom: 14px;
+    filter: drop-shadow(0 0 12px rgba(255, 217, 102, 0.6));
+    animation: resume-glyph-pulse 2.2s ease-in-out infinite;
+  }
+  @keyframes resume-glyph-pulse {
+    0%, 100% { transform: scale(1); }
+    50%      { transform: scale(1.08); }
+  }
+  .resume-tag {
+    color: var(--crimson);
+    font-size: 11px;
+    letter-spacing: 0.32em;
+    font-weight: bold;
+    margin-bottom: 6px;
+  }
+  .resume-title {
+    font-family: 'Georgia', serif;
+    font-size: 24px;
+    color: var(--gold-bright);
+    margin-bottom: 12px;
+    text-shadow: 0 0 20px rgba(255, 217, 102, 0.5);
+  }
+  .resume-body {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #d9c896;
+    font-style: italic;
+    margin-bottom: 22px;
+  }
+  .resume-cta {
+    background: rgba(212, 175, 55, 0.15);
+    border: 2px solid var(--gold-bright);
+    color: var(--gold-bright);
+    padding: 14px 22px;
+    border-radius: 4px;
+    font-family: 'Georgia', serif;
+    font-size: 13px;
+    font-weight: bold;
+    letter-spacing: 0.28em;
+    text-shadow: 0 1px 3px #000;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+    animation: resume-cta-glow 2s ease-in-out infinite;
+  }
+  @keyframes resume-cta-glow {
+    0%, 100% { box-shadow: 0 6px 20px rgba(0,0,0,0.5), 0 0 16px rgba(212,175,55,0.3); }
+    50%      { box-shadow: 0 6px 20px rgba(0,0,0,0.5), 0 0 32px rgba(255,217,102,0.65); }
+  }
+
+  /* SCENE 1: Cold open */
+  #scene-cold {
+    background: #000;
+  }
+  #scene-cold .ink-name {
+    color: var(--parchment);
+    font-size: 38px;
+    font-family: 'Georgia', serif;
+    letter-spacing: 0.15em;
+    text-align: center;
+    opacity: 0;
+    text-shadow: 0 0 20px rgba(232, 217, 176, 0.4);
+  }
+  #scene-cold .ink-name.writing { opacity: 1; animation: write-ink 3s ease-in-out forwards; }
+  @keyframes write-ink {
+    0% { opacity: 0; letter-spacing: 0.5em; filter: blur(8px); }
+    60% { opacity: 1; letter-spacing: 0.15em; filter: blur(0); }
+    100% { opacity: 1; letter-spacing: 0.15em; filter: blur(0); }
+  }
+  #scene-cold .sub-text {
+    color: var(--parchment);
+    font-size: 16px;
+    margin-top: 24px;
+    opacity: 0;
+    text-align: center;
+    font-style: italic;
+  }
+  #scene-cold .sub-text.show { animation: fade-in 1.5s ease forwards; animation-delay: 3s; }
+  @keyframes fade-in { to { opacity: 0.95; } }
+  #scene-cold .cold-tap {
+    position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%);
+    color: var(--gold-bright);
+    font-size: 14px;
+    font-weight: bold;
+    letter-spacing: 0.3em;
+    opacity: 0;
+    animation: pulse-tap 2s ease-in-out infinite;
+    animation-delay: 5s;
+    text-shadow: 0 0 10px rgba(255, 217, 102, 0.5);
+  }
+  @keyframes pulse-tap {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+  }
+
+  /* SCENE 2: Letter */
+  #scene-letter {
+    background:
+      radial-gradient(ellipse at center, #2a1f10 0%, #0a0805 80%),
+      #0a0805;
+    flex-direction: column;
+  }
+  .parchment {
+    background:
+      radial-gradient(ellipse at 30% 20%, rgba(212, 175, 55, 0.06) 0%, transparent 50%),
+      radial-gradient(ellipse at 70% 80%, rgba(139, 0, 0, 0.04) 0%, transparent 50%),
+      linear-gradient(135deg, #e8d9b0 0%, #d4c39a 100%);
+    border-radius: 4px;
+    box-shadow:
+      0 20px 60px rgba(0, 0, 0, 0.8),
+      inset 0 0 80px rgba(139, 90, 43, 0.3);
+    padding: 36px 28px;
+    max-width: 540px;
+    width: 100%;
+    max-height: 88vh;
+    overflow-y: auto;
+    color: var(--ink);
+    line-height: 1.7;
+    position: relative;
+  }
+  .parchment::before {
+    content: '';
+    position: absolute; inset: 6px;
+    border: 1px solid rgba(139, 90, 43, 0.25);
+    border-radius: 2px;
+    pointer-events: none;
+  }
+  /* Dragon corner decorations */
+  .parchment::after {
+    content: '✦';
+    position: absolute;
+    top: 18px; right: 22px;
+    color: var(--gold);
+    font-size: 16px;
+    opacity: 0.6;
+  }
+  .letter-text-cn {
+    font-size: 17px;
+    font-family: 'Songti SC', 'STSong', 'SimSun', serif;
+    line-height: 2;
+    transition: opacity 0.4s ease;
+    text-align: justify;
+  }
+  .letter-text-en {
+    font-size: 15px;
+    font-family: 'Georgia', serif;
+    line-height: 1.8;
+    position: absolute;
+    inset: 36px 28px;
+    background: #e8d9b0;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+    pointer-events: none;
+    padding-right: 8px;
+    overflow-y: auto;
+    z-index: 5;
+    color: var(--ink);
+  }
+  .parchment.touching .letter-text-cn { opacity: 0; }
+  .parchment.touching .letter-text-en { opacity: 1; }
+  .letter-text-en p, .letter-text-cn p { margin-bottom: 14px; }
+  .signature { text-align: right; margin-top: 18px; font-style: italic; }
+  .letter-audio-row {
+    display: flex;
+    justify-content: center;
+    margin: 14px 0 4px;
+  }
+  .letter-audio-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: linear-gradient(135deg, #2a1f10 0%, #1a1208 100%);
+    border: 2px solid var(--gold-bright);
+    color: #f4e4b0;
+    padding: 10px 22px;
+    font-family: 'Georgia', serif;
+    font-size: 12px;
+    font-weight: bold;
+    letter-spacing: 0.2em;
+    cursor: pointer;
+    border-radius: 999px;
+    text-shadow: 0 1px 2px #000;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.6), 0 0 18px rgba(212, 175, 55, 0.18);
+    transition: all 0.2s ease;
+  }
+  .letter-audio-btn:active { transform: scale(0.97); }
+  .letter-audio-btn.playing {
+    background: linear-gradient(135deg, #3a2d10 0%, #2a1f10 100%);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.6), 0 0 28px rgba(255, 217, 102, 0.5);
+  }
+  .letter-audio-icon { font-size: 14px; line-height: 1; }
+  .letter-audio-btn.loading .letter-audio-icon { animation: dd-pulse 1s ease infinite; }
+  @keyframes dd-pulse { 0%,100%{opacity:0.4;} 50%{opacity:1;} }
+
+  .touch-hint {
+    color: var(--gold-bright);
+    font-size: 12px;
+    font-weight: bold;
+    letter-spacing: 0.25em;
+    text-align: center;
+    margin-top: 16px;
+    opacity: 1;
+    font-style: italic;
+    text-shadow: 0 1px 3px #000, 0 0 10px rgba(0,0,0,0.95), 0 0 4px #000;
+    background: rgba(0, 0, 0, 0.65);
+    padding: 6px 14px;
+    border-radius: 999px;
+    display: inline-block;
+    border: 1px solid rgba(255, 217, 102, 0.4);
+  }
+  .next-btn {
+    background: rgba(20, 12, 6, 0.85);
+    border: 2px solid var(--gold-bright);
+    color: var(--gold-bright);
+    padding: 14px 36px;
+    font-size: 14px;
+    font-weight: bold;
+    letter-spacing: 0.2em;
+    font-family: 'Georgia', serif;
+    cursor: pointer;
+    margin-top: 12px;
+    transition: all 0.3s ease;
+    border-radius: 4px;
+    text-shadow: 0 1px 2px #000;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.6);
+  }
+  .next-btn:active { background: rgba(20, 12, 6, 0.95); }
+
+  /* Back button (top-left) */
+  .back-btn {
+    position: fixed;
+    top: 18px;
+    left: 18px;
+    z-index: 200;
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid var(--gold-bright);
+    color: var(--gold-bright);
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    font-size: 22px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+  }
+  .back-btn:active { background: rgba(232, 193, 80, 0.3); }
+
+  /* SCENE 2.5: Sorting Ceremony */
+  :root {
+    --gryf-red: #7a0a14;
+    --gryf-gold: #d4af37;
+    --slyt-green: #1a5d3a;
+    --slyt-silver: #aaaaaa;
+    --huff-yellow: #d9a814;
+    --huff-black: #1a1208;
+  }
+  #scene-sorting.visible {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    background:
+      radial-gradient(ellipse at 30% 10%, rgba(212, 175, 55, 0.15) 0%, transparent 60%),
+      radial-gradient(ellipse at center, #2a1f10 0%, #0a0805 80%);
+    padding: 90px 16px 60px !important;
+    overflow-y: auto !important;
+  }
+  .sorting-card {
+    background: linear-gradient(135deg, #1a1208 0%, #0d0905 100%);
+    border-radius: 8px;
+    border: 2px solid var(--gold-bright);
+    box-shadow: 0 30px 80px rgba(0,0,0,0.9), inset 0 0 80px rgba(139,90,43,0.2);
+    padding: 28px 18px 26px;
+    width: 100%;
+    max-width: 720px;
+    text-align: center;
+    position: relative;
+  }
+  .sorting-dd-portrait {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    object-fit: cover;
+    object-position: center 22%;
+    border: 3px solid var(--gold-bright);
+    box-shadow: 0 0 30px rgba(255, 217, 102, 0.5);
+    margin: -68px auto 12px;
+    background: #1a1208;
+    display: block;
+  }
+  .sorting-tag {
+    color: var(--crimson);
+    font-size: 11px;
+    letter-spacing: 0.35em;
+    font-weight: bold;
+    margin-bottom: 4px;
+  }
+  .sorting-title {
+    font-family: 'Georgia', serif;
+    font-size: 30px;
+    color: var(--gold-bright);
+    margin-bottom: 16px;
+    text-shadow: 0 0 24px rgba(255, 217, 102, 0.5);
+  }
+  .sorting-speech {
+    color: #f4e4b0;
+    font-style: italic;
+    font-size: 14px;
+    line-height: 1.7;
+    text-align: left;
+    margin: 0 6px 22px;
+    padding: 14px 16px;
+    background: rgba(232, 217, 176, 0.08);
+    border-left: 3px solid var(--gold-bright);
+    border-radius: 4px;
+  }
+  .sort-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  @media (max-width: 560px) {
+    .sort-grid { grid-template-columns: 1fr; }
+  }
+  .sort-slot {
+    background: rgba(232, 217, 176, 0.06);
+    border: 1px solid rgba(212, 175, 55, 0.35);
+    border-radius: 6px;
+    padding: 10px 8px;
+    transition: all 0.5s ease;
+  }
+  .sort-slot.house-gryf {
+    border-color: var(--gryf-gold);
+    background: linear-gradient(180deg, rgba(122, 10, 20, 0.25) 0%, rgba(212, 175, 55, 0.1) 100%);
+    box-shadow: 0 0 30px rgba(212, 175, 55, 0.4);
+  }
+  .sort-slot.house-slyt {
+    border-color: var(--slyt-silver);
+    background: linear-gradient(180deg, rgba(26, 93, 58, 0.3) 0%, rgba(170, 170, 170, 0.1) 100%);
+    box-shadow: 0 0 30px rgba(170, 170, 170, 0.35);
+  }
+  .sort-slot.house-huff {
+    border-color: var(--huff-yellow);
+    background: linear-gradient(180deg, rgba(217, 168, 20, 0.3) 0%, rgba(26, 18, 8, 0.4) 100%);
+    box-shadow: 0 0 30px rgba(217, 168, 20, 0.4);
+  }
+  .sort-name {
+    color: var(--gold-bright);
+    font-family: 'Georgia', serif;
+    font-size: 13px;
+    font-weight: bold;
+    letter-spacing: 0.15em;
+    margin-bottom: 8px;
+    text-shadow: 0 1px 2px #000;
+  }
+  .sort-photo-wrap {
+    position: relative;
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid #8b5a2b;
+    background: #0a0805;
+    margin-bottom: 8px;
+  }
+  .sort-photo {
+    width: 100%;
+    height: auto;
+    display: block;
+    transition: opacity 0.5s ease;
+  }
+  .sort-photo.swapping {
+    opacity: 0;
+  }
+  .sort-mutter {
+    color: #d4af37;
+    font-style: italic;
+    font-size: 11.5px;
+    line-height: 1.45;
+    min-height: 14px;
+    text-shadow: 0 1px 2px #000;
+    opacity: 0;
+    transition: opacity 0.6s ease;
+  }
+  .sort-mutter.showing {
+    opacity: 1;
+  }
+  .sort-house {
+    margin-top: 8px;
+    font-family: 'Georgia', serif;
+    font-size: 18px;
+    font-weight: bold;
+    letter-spacing: 0.15em;
+    opacity: 0;
+    transform: scale(0.85);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+  }
+  .sort-house.revealed {
+    opacity: 1;
+    transform: scale(1);
+  }
+  .sort-house.gryf { color: var(--gryf-gold); text-shadow: 0 0 16px var(--gryf-red), 0 0 4px var(--gryf-red); }
+  .sort-house.slyt { color: #e8f3e8; text-shadow: 0 0 16px var(--slyt-green), 0 0 4px var(--slyt-green); }
+  .sort-house.huff { color: var(--huff-yellow); text-shadow: 0 0 16px #c98a00, 0 0 4px #c98a00; }
+  .sort-action-btn {
+    background: rgba(20, 12, 6, 0.92);
+    border: 2px solid var(--gold-bright);
+    color: var(--gold-bright);
+    padding: 14px 28px;
+    font-size: 13px;
+    font-weight: bold;
+    letter-spacing: 0.2em;
+    font-family: 'Georgia', serif;
+    cursor: pointer;
+    border-radius: 4px;
+    text-shadow: 0 1px 2px #000;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.6);
+    margin-top: 6px;
+    width: 100%;
+    max-width: 460px;
+  }
+  .sort-action-btn:active { background: rgba(40, 28, 14, 0.95); }
+  .sort-continue { border-color: #6ee87c; color: #d8f5e0; }
+
+  /* SCENE 3: Dobby + Rules */
+  #scene-rules {
+    background: radial-gradient(ellipse at center, #2a1f10 0%, #0a0805 80%);
+    flex-direction: column;
+  }
+  .rules-parchment {
+    background:
+      radial-gradient(ellipse at 30% 20%, rgba(212, 175, 55, 0.06) 0%, transparent 50%),
+      linear-gradient(135deg, #e8d9b0 0%, #d4c39a 100%);
+    border-radius: 4px;
+    box-shadow:
+      0 20px 60px rgba(0, 0, 0, 0.8),
+      inset 0 0 80px rgba(139, 90, 43, 0.3);
+    padding: 32px 26px 100px;
+    max-width: 540px;
+    width: 100%;
+    max-height: 88vh;
+    overflow-y: auto;
+    color: var(--ink);
+    position: relative;
+  }
+  .rules-title {
+    text-align: center;
+    font-size: 22px;
+    color: var(--ink);
+    margin-bottom: 8px;
+    letter-spacing: 0.15em;
+    font-family: 'Georgia', serif;
+  }
+  .rules-subtitle {
+    text-align: center;
+    font-size: 12px;
+    font-style: italic;
+    color: var(--ink-light);
+    margin-bottom: 24px;
+    letter-spacing: 0.1em;
+  }
+  .rule {
+    margin-bottom: 22px;
+    padding: 14px 16px;
+    background: rgba(139, 90, 43, 0.08);
+    border-left: 3px solid var(--gold);
+    border-radius: 2px;
+  }
+  .rule-num {
+    color: var(--crimson);
+    font-size: 11px;
+    letter-spacing: 0.3em;
+    margin-bottom: 4px;
+    font-weight: bold;
+  }
+  .rule-title {
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 6px;
+    color: var(--ink);
+  }
+  .rule-body {
+    font-size: 13.5px;
+    line-height: 1.6;
+    color: var(--ink-light);
+  }
+
+  /* Dobby in corner */
+  .dobby-corner {
+    position: fixed;
+    bottom: 18px;
+    left: 18px;
+    z-index: 100;
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    max-width: 75vw;
+    pointer-events: none;
+  }
+  .dobby-sprite {
+    width: 86px;
+    height: auto;
+    flex-shrink: 0;
+    filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.7));
+    animation: dobby-bob 3s ease-in-out infinite;
+    object-fit: contain;
+  }
+  @keyframes dobby-bob {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
+  }
+  .dobby-bubble {
+    background: var(--parchment);
+    color: var(--ink);
+    padding: 10px 14px;
+    border-radius: 12px;
+    font-size: 12px;
+    line-height: 1.4;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+    position: relative;
+    max-width: 220px;
+    pointer-events: auto;
+    cursor: pointer;
+    border: 1px solid var(--parchment-dark);
+  }
+  .dobby-bubble::after {
+    content: '';
+    position: absolute;
+    left: -8px; bottom: 14px;
+    width: 0; height: 0;
+    border-top: 6px solid transparent;
+    border-bottom: 6px solid transparent;
+    border-right: 8px solid var(--parchment);
+  }
+  .dobby-bubble strong { color: var(--crimson); }
+
+  /* Fixed next button (mobile bottom) */
+  .bottom-action {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 50;
+  }
+
+  /* Scrollbar (subtle) */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(139, 90, 43, 0.4); border-radius: 2px; }
+
+  /* SCENE 4: MAP REVEAL */
+  #scene-map {
+    background:
+      radial-gradient(ellipse at center, #2a1f10 0%, #0a0805 80%);
+    flex-direction: column;
+    padding: 60px 20px 100px;
+  }
+  .map-header {
+    text-align: center;
+    margin-bottom: 16px;
+    color: var(--gold-bright);
+    font-size: 13px;
+    letter-spacing: 0.3em;
+    font-style: italic;
+    opacity: 0;
+    animation: fade-in 1.2s ease forwards;
+    animation-delay: 0.5s;
+  }
+  .map-canvas {
+    width: 100%;
+    max-width: 560px;
+    background:
+      radial-gradient(ellipse at 50% 50%, rgba(212, 175, 55, 0.08) 0%, transparent 70%),
+      linear-gradient(135deg, #e8d9b0 0%, #d4c39a 100%);
+    border-radius: 8px;
+    padding: 20px 14px;
+    box-shadow:
+      0 20px 60px rgba(0, 0, 0, 0.8),
+      inset 0 0 80px rgba(139, 90, 43, 0.3);
+    position: relative;
+    opacity: 0;
+    transform: scale(0.95);
+    animation: map-unfurl 1.5s ease-out forwards;
+    animation-delay: 0.2s;
+  }
+  @keyframes map-unfurl {
+    0% { opacity: 0; transform: scale(0.9) rotate(-2deg); }
+    100% { opacity: 1; transform: scale(1) rotate(0); }
+  }
+  .map-canvas::before {
+    content: '';
+    position: absolute; inset: 8px;
+    border: 1px solid rgba(139, 90, 43, 0.4);
+    border-radius: 4px;
+    pointer-events: none;
+  }
+  .map-svg {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+  .map-stop {
+    cursor: pointer;
+  }
+  .map-stop circle.pin {
+    transition: all 0.4s ease;
+  }
+  .map-stop.locked circle.pin {
+    fill: rgba(74, 46, 31, 0.3);
+    stroke: rgba(74, 46, 31, 0.4);
+  }
+  .map-stop.locked text {
+    fill: rgba(74, 46, 31, 0.35);
+  }
+  .map-stop.active circle.pin {
+    fill: #c92a2a;
+    stroke: #ffd966;
+    stroke-width: 2;
+    filter: url(#glow);
+    animation: pin-pulse 1.5s ease-in-out infinite;
+  }
+  .map-stop.active text {
+    fill: #2b1810;
+    font-weight: bold;
+  }
+  @keyframes pin-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+  }
+  .map-stop.done circle.pin {
+    fill: #2d6a4f;
+    stroke: #95d5b2;
+  }
+  .map-stop.done text {
+    fill: #2b1810;
+  }
+  .map-narration {
+    background: rgba(0, 0, 0, 0.7);
+    color: var(--parchment);
+    padding: 14px 18px;
+    border-radius: 10px;
+    border-left: 3px solid var(--gold-bright);
+    font-size: 13.5px;
+    line-height: 1.6;
+    max-width: 540px;
+    margin: 16px auto 0;
+    opacity: 0;
+    animation: fade-in 1s ease forwards;
+    animation-delay: 1.8s;
+    font-style: italic;
+  }
+  .map-narration .speaker {
+    color: var(--gold-bright);
+    font-style: normal;
+    font-weight: bold;
+    letter-spacing: 0.1em;
+    font-size: 11px;
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  /* SCENE 6.5: Dim Sum at Maxim's Palace */
+  #scene-dimsum.visible {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    background:
+      radial-gradient(ellipse at 30% 10%, rgba(201, 42, 42, 0.18) 0%, transparent 60%),
+      radial-gradient(ellipse at center, #2a0a0a 0%, #100404 80%);
+    padding: 90px 18px 60px !important;
+    overflow-y: auto !important;
+  }
+  .dimsum-card {
+    background: linear-gradient(135deg, #f5e9c8 0%, #e8d9b0 100%);
+    border-radius: 8px;
+    border: 3px solid var(--gold-bright);
+    box-shadow: 0 30px 80px rgba(0,0,0,0.9), inset 0 0 80px rgba(139,90,43,0.25);
+    padding: 28px 22px 30px;
+    width: 100%;
+    max-width: 560px;
+    color: var(--ink);
+    text-align: center;
+  }
+  .dimsum-tag {
+    color: var(--crimson);
+    font-size: 12px;
+    letter-spacing: 0.3em;
+    font-weight: bold;
+    margin-bottom: 4px;
+  }
+  .dimsum-title {
+    font-family: 'Georgia', serif;
+    font-size: 28px;
+    color: var(--ink);
+    margin-bottom: 2px;
+  }
+  .dimsum-subtitle {
+    font-family: 'Georgia', serif;
+    font-style: italic;
+    color: #6b4a2a;
+    font-size: 14px;
+    margin-bottom: 16px;
+  }
+  .dimsum-lore {
+    text-align: left;
+    font-size: 13.5px;
+    line-height: 1.65;
+    color: #3a2812;
+    background: rgba(255, 255, 255, 0.25);
+    padding: 12px 14px;
+    border-radius: 4px;
+    border-left: 3px solid var(--crimson);
+    margin-bottom: 18px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .dimsum-dobby-portrait {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    object-fit: cover;
+    object-position: center 30%;
+    border: 2px solid #8b5a2b;
+    background: #1a1208;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+  .dimsum-lore-text { flex: 1; }
+  .dimsum-hp-banner {
+    background: #1a1208;
+    border: 2px solid var(--gold-bright);
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-bottom: 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .dimsum-hp-label {
+    color: #f4e4b0;
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 0.25em;
+  }
+  .dimsum-hp-value {
+    color: #ff6b6b;
+    font-size: 22px;
+    font-weight: bold;
+    text-shadow: 0 0 12px rgba(255, 107, 107, 0.5);
+  }
+  .dimsum-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+  .dish-card {
+    background: linear-gradient(180deg, #fff8e8 0%, #f0dfc0 100%);
+    border: 2px solid #b88a4a;
+    border-radius: 6px;
+    padding: 14px 10px 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .dish-card:active { transform: scale(0.96); }
+  .dish-card .dish-emoji { font-size: 36px; line-height: 1; display: block; margin-bottom: 6px; }
+  .dish-card .dish-img {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    border-radius: 4px;
+    border: 1px solid #8b5a2b;
+    display: block;
+    margin-bottom: 8px;
+    background: #1a1208;
+  }
+  .dish-card .dish-name { font-family: 'Georgia', serif; font-size: 13px; color: var(--ink); font-weight: bold; line-height: 1.2; }
+  .dish-card .dish-cn { font-size: 12px; color: var(--crimson); margin: 2px 0 6px; }
+  .dish-card .dish-hp { font-size: 12px; color: #c92a2a; font-weight: bold; letter-spacing: 0.1em; }
+  .dish-card.eaten {
+    background: linear-gradient(180deg, #d4c39a 0%, #b8a47a 100%);
+    border-color: #6b4a2a;
+    cursor: default;
+    opacity: 0.75;
+  }
+  .dish-card.eaten::after {
+    content: '✓ EATEN';
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    background: #2d6a4f;
+    color: white;
+    font-size: 9px;
+    font-weight: bold;
+    letter-spacing: 0.1em;
+    padding: 3px 6px;
+    border-radius: 3px;
+  }
+  .dimsum-finish {
+    background: #1a1208;
+    border: 2px solid var(--gold-bright);
+    color: #f4e4b0;
+    padding: 14px 28px;
+    font-size: 13px;
+    font-weight: bold;
+    letter-spacing: 0.2em;
+    font-family: 'Georgia', serif;
+    cursor: pointer;
+    border-radius: 4px;
+    width: 100%;
+    text-shadow: 0 1px 2px #000;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+  }
+  .dimsum-finish:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .dimsum-finish:active:not(:disabled) { background: #2a1f10; }
+  .dimsum-hint {
+    margin-top: 10px;
+    font-size: 11px;
+    color: #6b4a2a;
+    font-style: italic;
+    letter-spacing: 0.05em;
+  }
+  .hp-popup {
+    position: absolute;
+    color: #ff6b6b;
+    font-weight: bold;
+    font-size: 22px;
+    pointer-events: none;
+    text-shadow: 0 0 12px rgba(255, 107, 107, 0.8), 0 1px 2px #000;
+    animation: hp-rise 0.9s ease-out forwards;
+  }
+  @keyframes hp-rise {
+    0% { transform: translateY(0); opacity: 1; }
+    100% { transform: translateY(-50px); opacity: 0; }
+  }
+
+  /* SCENE 7: Countdown to showdown */
+  #scene-countdown.visible {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: radial-gradient(ellipse at center, #1a0a0a 0%, #000 80%);
+    padding: 40px 24px !important;
+  }
+  .countdown-card {
+    text-align: center;
+    max-width: 460px;
+  }
+  .countdown-card .ctd-tag {
+    color: var(--crimson);
+    font-size: 12px;
+    letter-spacing: 0.35em;
+    font-weight: bold;
+    margin-bottom: 8px;
+    animation: blink-warning 1.5s ease-in-out infinite;
+  }
+  @keyframes blink-warning { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; text-shadow: 0 0 18px rgba(201, 42, 42, 0.9); } }
+  .countdown-card .ctd-title {
+    font-family: 'Georgia', serif;
+    font-size: 26px;
+    color: var(--gold-bright);
+    margin-bottom: 22px;
+    text-shadow: 0 0 20px rgba(255, 217, 102, 0.5);
+  }
+  .countdown-card .ctd-clock {
+    font-size: 84px;
+    font-weight: bold;
+    color: var(--gold-bright);
+    font-family: 'Georgia', serif;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 30px rgba(255, 217, 102, 0.7), 0 0 60px rgba(201, 42, 42, 0.4);
+    margin-bottom: 12px;
+    letter-spacing: 0.05em;
+  }
+  .countdown-card .ctd-instruction {
+    color: var(--parchment);
+    font-size: 14px;
+    line-height: 1.6;
+    font-style: italic;
+    margin-bottom: 24px;
+  }
+  .countdown-card .ctd-begin {
+    background: rgba(201, 42, 42, 0.2);
+    border: 2px solid var(--crimson);
+    color: var(--gold-bright);
+    padding: 16px 36px;
+    font-size: 14px;
+    font-weight: bold;
+    letter-spacing: 0.25em;
+    border-radius: 4px;
+    font-family: 'Georgia', serif;
+    cursor: pointer;
+    text-shadow: 0 0 10px rgba(255, 217, 102, 0.5);
+  }
+  .countdown-card .ctd-begin:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+
+  /* SCENE 8: BATTLE */
+  #scene-battle.visible {
+    display: flex !important;
+    flex-direction: column !important;
+    background:
+      radial-gradient(ellipse at 20% 30%, rgba(255, 30, 200, 0.18) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 40%, rgba(30, 100, 255, 0.18) 0%, transparent 50%),
+      linear-gradient(180deg, #000 0%, #1a0a1a 35%, #000 100%);
+    padding: 16px 12px 16px !important;
+    overflow: hidden !important;
+    justify-content: space-between !important;
+    align-items: stretch !important;
+  }
+  .battle-top {
+    flex: 0 0 auto;
+  }
+  .battle-voldemort {
+    text-align: center;
+    margin: 8px 0 14px;
+  }
+  .vold-hp-row {
+    margin: 0 auto 8px;
+    max-width: 360px;
+    background: rgba(0,0,0,0.7);
+    border: 1.5px solid var(--crimson);
+    border-radius: 4px;
+    padding: 8px 12px;
+  }
+  .vold-hp-label {
+    color: var(--crimson);
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    font-weight: bold;
+    margin-bottom: 4px;
+    display: flex;
+    justify-content: space-between;
+    font-family: 'Georgia', serif;
+  }
+  .vold-hp-bar {
+    height: 14px;
+    background: rgba(43, 24, 16, 0.6);
+    border-radius: 7px;
+    overflow: hidden;
+    border: 1px solid rgba(201, 42, 42, 0.5);
+  }
+  .vold-hp-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #ff5252 0%, #c92a2a 100%);
+    transition: width 0.6s ease-out;
+    box-shadow: 0 0 10px rgba(255, 82, 82, 0.6);
+  }
+  .vold-sprite-wrap {
+    margin: 6px auto 10px;
+    width: 230px;
+    height: 290px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .vold-sprite {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 0 30px rgba(201, 42, 42, 0.6));
+    animation: vold-float 3s ease-in-out infinite;
+  }
+  .vold-sprite.vold-dead { position: absolute; }
+  @keyframes vold-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+  .vold-sprite.hit { animation: vold-shake 0.4s ease-in-out; }
+  @keyframes vold-shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-8px) rotate(-2deg); }
+    40% { transform: translateX(8px) rotate(2deg); }
+    60% { transform: translateX(-6px); }
+    80% { transform: translateX(6px); }
+  }
+  .vold-sprite.defeated {
+    animation: vold-dissolve 3s ease-out forwards;
+  }
+  @keyframes vold-dissolve {
+    0% { opacity: 1; filter: drop-shadow(0 0 30px rgba(201, 42, 42, 0.5)); }
+    30% { opacity: 1; filter: drop-shadow(0 0 80px rgba(255, 50, 50, 1)) brightness(1.5); transform: scale(1.05); }
+    60% { opacity: 1; filter: drop-shadow(0 0 100px rgba(255, 217, 102, 1)) brightness(2); }
+    100% { opacity: 0; transform: scale(1.6); filter: blur(25px) brightness(3); }
+  }
+  .vold-sprite.vold-dead.showing {
+    display: block !important;
+    animation: vold-dead-emerge 3s ease-out forwards;
+  }
+  @keyframes vold-dead-emerge {
+    0% { opacity: 0; transform: scale(0.6); filter: blur(15px); }
+    40% { opacity: 1; transform: scale(1.1); filter: drop-shadow(0 0 60px rgba(255, 217, 102, 0.8)); }
+    100% { opacity: 1; transform: scale(1); filter: drop-shadow(0 0 40px rgba(201, 42, 42, 0.4)); }
+  }
+  .vold-name {
+    color: var(--crimson);
+    font-family: 'Georgia', serif;
+    font-size: 14px;
+    letter-spacing: 0.25em;
+    font-weight: bold;
+    text-shadow: 0 0 12px rgba(201, 42, 42, 0.7);
+    margin-bottom: 4px;
+  }
+  .damage-popup {
+    position: absolute;
+    color: var(--gold-bright);
+    font-size: 28px;
+    font-weight: bold;
+    font-family: 'Georgia', serif;
+    text-shadow: 0 0 12px #000, 0 0 8px #ff5252;
+    pointer-events: none;
+    animation: damage-rise 1.2s ease-out forwards;
+    z-index: 50;
+  }
+  @keyframes damage-rise {
+    0% { transform: translate(0, 0) scale(0.6); opacity: 0; }
+    20% { transform: translate(0, -8px) scale(1.3); opacity: 1; }
+    100% { transform: translate(0, -60px) scale(1); opacity: 0; }
+  }
+  .battle-status {
+    text-align: center;
+    color: var(--parchment);
+    font-size: 13px;
+    font-style: italic;
+    min-height: 36px;
+    padding: 4px 14px;
+    line-height: 1.4;
+  }
+
+  /* Hero HP bar */
+  .hero-hp-row {
+    margin: 6px auto 4px;
+    max-width: 360px;
+    background: rgba(0,0,0,0.7);
+    border: 1.5px solid #3b82f6;
+    border-radius: 4px;
+    padding: 8px 12px;
+  }
+  .hero-hp-label {
+    color: #93c5fd;
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    font-weight: bold;
+    margin-bottom: 4px;
+    display: flex;
+    justify-content: space-between;
+    font-family: 'Georgia', serif;
+  }
+  .hero-hp-bar {
+    height: 12px;
+    background: rgba(43, 24, 16, 0.6);
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid rgba(59, 130, 246, 0.5);
+  }
+  .hero-hp-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #60a5fa 0%, #2563eb 100%);
+    transition: width 0.6s ease-out;
+    box-shadow: 0 0 8px rgba(96, 165, 250, 0.6);
+  }
+  .hero-hp-fill.low { background: linear-gradient(90deg, #ffd966 0%, #f59e0b 100%); }
+  .hero-hp-fill.critical { background: linear-gradient(90deg, #ff5252 0%, #c92a2a 100%); }
+
+  /* Voldemort attack flash */
+  .vold-cast-flash {
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at center, rgba(201,42,42,0.5) 0%, transparent 70%);
+    pointer-events: none;
+    opacity: 0;
+    z-index: 15;
+  }
+  .vold-cast-flash.active {
+    animation: cast-flash 0.6s ease-out;
+  }
+  @keyframes cast-flash {
+    0% { opacity: 0; }
+    40% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  .vold-sprite.casting {
+    animation: vold-cast 0.6s ease-in-out;
+  }
+  @keyframes vold-cast {
+    0%, 100% { transform: translateY(0) scale(1); filter: drop-shadow(0 0 30px rgba(201, 42, 42, 0.5)); }
+    50% { transform: translateY(-15px) scale(1.1); filter: drop-shadow(0 0 60px rgba(255, 20, 20, 1)); }
+  }
+
+  .hero-dmg-popup {
+    position: fixed;
+    color: #ff5252;
+    font-size: 24px;
+    font-weight: bold;
+    font-family: 'Georgia', serif;
+    text-shadow: 0 0 12px #000, 0 0 8px #ff5252;
+    pointer-events: none;
+    animation: hero-dmg 1.5s ease-out forwards;
+    z-index: 60;
+    text-align: center;
+    width: 200px;
+  }
+  @keyframes hero-dmg {
+    0% { transform: translate(-50%, 0) scale(0.6); opacity: 0; }
+    20% { transform: translate(-50%, -8px) scale(1.3); opacity: 1; }
+    100% { transform: translate(-50%, -50px) scale(1); opacity: 0; }
+  }
+  .battle-moves {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    margin: 6px 0 8px;
+    padding: 6px 2px;
+    max-height: 50vh;
+  }
+  .moves-tag {
+    text-align: center;
+    color: var(--gold-bright);
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    font-weight: bold;
+    margin-bottom: 8px;
+  }
+  .moves-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    padding: 0 4px;
+  }
+  .move-btn {
+    background: linear-gradient(135deg, #2a1f10 0%, #1a1208 100%);
+    border: 2px solid #6b4226;
+    color: var(--parchment);
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-family: 'Georgia', serif;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.15s ease;
+  }
+  .move-btn:active:not(:disabled) {
+    transform: scale(0.96);
+    background: linear-gradient(135deg, #c92a2a 0%, #7a0f0f 100%);
+    border-color: var(--gold-bright);
+  }
+  .move-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    text-decoration: line-through;
+  }
+  .move-btn.miko { border-left: 4px solid var(--crimson); }
+  .move-btn.michael { border-left: 4px solid #2563eb; }
+  .move-btn.andrea { border-left: 4px solid #be185d; }
+  .move-btn .move-who {
+    font-size: 8px;
+    letter-spacing: 0.15em;
+    font-weight: bold;
+    color: var(--gold-bright);
+    opacity: 0.7;
+  }
+  .move-btn .move-name {
+    font-size: 12px;
+    font-weight: bold;
+    color: var(--parchment);
+    line-height: 1.2;
+    margin-top: 2px;
+  }
+  .move-btn .move-dmg {
+    font-size: 11px;
+    color: var(--crimson);
+    font-weight: bold;
+    margin-top: 3px;
+    text-shadow: 0 0 4px rgba(201, 42, 42, 0.5);
+  }
+
+  /* SCENE 9: VICTORY */
+  #scene-victory.visible {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    background: radial-gradient(ellipse at center, #2a1f10 0%, #0a0805 80%);
+    padding: 100px 24px 80px !important;
+    overflow-y: auto !important;
+  }
+  .victory-card {
+    background:
+      radial-gradient(ellipse at 30% 20%, rgba(212, 175, 55, 0.1) 0%, transparent 50%),
+      linear-gradient(135deg, #e8d9b0 0%, #d4c39a 100%);
+    border-radius: 8px;
+    padding: 36px 28px;
+    width: 100%;
+    max-width: 500px;
+    color: var(--ink);
+    text-align: center;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.9), inset 0 0 80px rgba(139,90,43,0.3), 0 0 80px rgba(255, 217, 102, 0.3);
+    border: 3px solid var(--gold-bright);
+    position: relative;
+    animation: victory-glow 3s ease-in-out infinite;
+  }
+  @keyframes victory-glow {
+    0%, 100% { box-shadow: 0 30px 80px rgba(0,0,0,0.9), inset 0 0 80px rgba(139,90,43,0.3), 0 0 80px rgba(255, 217, 102, 0.3); }
+    50% { box-shadow: 0 30px 80px rgba(0,0,0,0.9), inset 0 0 80px rgba(139,90,43,0.3), 0 0 120px rgba(255, 217, 102, 0.6); }
+  }
+  .victory-dd-portrait {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+    object-position: center 22%;
+    border: 3px solid var(--gold-bright);
+    box-shadow: 0 0 40px rgba(255, 217, 102, 0.7);
+    margin: -90px auto 16px;
+    background: #1a1208;
+    display: block;
+  }
+  .victory-card .victory-tag {
+    color: var(--crimson);
+    font-size: 13px;
+    letter-spacing: 0.35em;
+    font-weight: bold;
+    margin-bottom: 8px;
+  }
+  .victory-card .victory-title {
+    font-family: 'Georgia', serif;
+    font-size: 28px;
+    margin-bottom: 18px;
+    color: var(--ink);
+  }
+  .victory-card .victory-message {
+    font-family: 'Georgia', serif;
+    font-size: 14px;
+    line-height: 1.7;
+    text-align: left;
+    color: var(--ink);
+    margin-bottom: 24px;
+    font-style: italic;
+  }
+  .victory-card .gift-cue {
+    background: rgba(201, 42, 42, 0.1);
+    border: 2px dashed var(--crimson);
+    padding: 14px 16px;
+    border-radius: 6px;
+    color: var(--crimson);
+    font-size: 13px;
+    font-weight: bold;
+    letter-spacing: 0.1em;
+  }
+
+  /* SCENE 6: Dumbledore congrats overlay */
+  .dd-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(10, 8, 5, 0.92);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    padding: 24px;
+  }
+  .dd-overlay.show { display: flex; }
+  .dd-overlay .dd-card {
+    background:
+      radial-gradient(ellipse at 30% 20%, rgba(212, 175, 55, 0.08) 0%, transparent 50%),
+      linear-gradient(135deg, #e8d9b0 0%, #d4c39a 100%);
+    border-radius: 8px;
+    padding: 30px 24px;
+    width: 100%;
+    max-width: 480px;
+    text-align: center;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.9), inset 0 0 80px rgba(139,90,43,0.3), 0 0 60px rgba(255, 217, 102, 0.15);
+    border: 2px solid var(--gold-bright);
+    position: relative;
+  }
+  .dd-overlay .dd-big-portrait {
+    width: 110px;
+    height: 110px;
+    border-radius: 50%;
+    object-fit: cover;
+    object-position: center 22%;
+    border: 3px solid var(--gold-bright);
+    box-shadow: 0 0 30px rgba(255, 217, 102, 0.6), 0 8px 20px rgba(0,0,0,0.7);
+    margin: -80px auto 14px;
+    background: #1a1208;
+    display: block;
+  }
+  .dd-overlay .dd-name {
+    font-size: 13px;
+    letter-spacing: 0.3em;
+    color: var(--crimson);
+    font-weight: bold;
+    margin-bottom: 8px;
+  }
+  .dd-overlay .dd-speech {
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--ink);
+    font-family: 'Georgia', serif;
+    margin-bottom: 18px;
+  }
+  .dd-overlay .dd-continue {
+    background: var(--crimson);
+    color: var(--parchment);
+    border: none;
+    padding: 12px 30px;
+    font-size: 13px;
+    font-weight: bold;
+    letter-spacing: 0.2em;
+    border-radius: 4px;
+    font-family: 'Georgia', serif;
+    cursor: pointer;
+  }
+  /* Dobby overlay styling - green/warm instead of crimson */
+  .dobby-card { border-color: #6ab16e !important; box-shadow: 0 30px 80px rgba(0,0,0,0.9), inset 0 0 80px rgba(139,90,43,0.3), 0 0 60px rgba(106, 177, 110, 0.25) !important; }
+  .dobby-big-portrait { border-color: #6ab16e !important; box-shadow: 0 0 30px rgba(106, 177, 110, 0.7), 0 8px 20px rgba(0,0,0,0.7) !important; object-position: center 28% !important; }
+  .dobby-name { color: #2d6a4f !important; }
+  .dobby-speech { font-style: italic; }
+  .dobby-continue { background: #2d6a4f !important; }
+
+  /* SCENE 6: Artifact Log */
+  #scene-artifact.visible {
+    display: flex !important;
+    flex-direction: column !important;
+    padding: 60px 18px 100px !important;
+    overflow-y: auto !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    background: radial-gradient(ellipse at center, #2a1f10 0%, #0a0805 80%);
+  }
+  .artifact-header {
+    text-align: center;
+    color: var(--gold-bright);
+    margin-bottom: 16px;
+  }
+  .artifact-header .tag {
+    font-size: 11px;
+    letter-spacing: 0.3em;
+    font-weight: bold;
+    color: var(--crimson);
+    text-shadow: 0 0 8px rgba(201, 42, 42, 0.4);
+    margin-bottom: 4px;
+  }
+  .artifact-header .title {
+    font-size: 22px;
+    color: var(--gold-bright);
+    text-shadow: 0 0 12px rgba(255, 217, 102, 0.5);
+    margin-bottom: 4px;
+  }
+  .artifact-header .sub {
+    font-size: 12px;
+    color: var(--parchment-dark);
+    font-style: italic;
+  }
+  .artifact-slot {
+    background:
+      linear-gradient(135deg, #e8d9b0 0%, #d4c39a 100%);
+    border-radius: 6px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.6), inset 0 0 40px rgba(139,90,43,0.25);
+    padding: 18px 18px;
+    width: 100%;
+    max-width: 500px;
+    color: var(--ink);
+    margin-bottom: 14px;
+    position: relative;
+    border-left: 5px solid var(--gryf-red);   /* Miko = Gryffindor */
+  }
+  .artifact-slot.michael { border-left-color: var(--slyt-green); }   /* Michael = Slytherin */
+  .artifact-slot.andrea  { border-left-color: var(--huff-yellow); }  /* Andrea = Hufflepuff */
+  .artifact-slot .who {
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    font-weight: bold;
+    color: var(--gryf-red);
+    margin-bottom: 4px;
+  }
+  .artifact-slot.michael .who { color: var(--slyt-green); }
+  .artifact-slot.andrea  .who { color: #a07408; }
+  .artifact-slot .who-name {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: var(--ink);
+  }
+  .artifact-slot .field {
+    margin-bottom: 8px;
+  }
+  .artifact-slot .field label {
+    display: block;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--ink-light);
+    font-weight: bold;
+    margin-bottom: 3px;
+  }
+  .artifact-slot .field input {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.55);
+    border: 1.5px solid var(--ink-light);
+    padding: 8px 10px;
+    font: inherit;
+    font-size: 14px;
+    color: var(--ink);
+    border-radius: 4px;
+  }
+  .artifact-slot .field input:focus {
+    outline: none;
+    border-color: var(--crimson);
+    background: rgba(255,255,255,0.85);
+  }
+  .artifact-slot.locked-in {
+    border-left-width: 5px;
+    background: linear-gradient(135deg, #d4c39a 0%, #b8a673 100%);
+  }
+  .wand-spark {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 20;
+    display: flex;
+    gap: 18px;
+  }
+  .wand-spark span {
+    color: var(--gold-bright);
+    font-size: 24px;
+    text-shadow: 0 0 12px #ffd966, 0 0 24px #ffd966, 0 0 6px #fff;
+    opacity: 0;
+    animation: wand-spark-fly 1.4s ease-out forwards;
+  }
+  .wand-spark span:nth-child(1) { --tx: -120px; --ty: -40px; animation-delay: 0s; }
+  .wand-spark span:nth-child(2) { --tx: -70px;  --ty: -80px; animation-delay: 0.07s; }
+  .wand-spark span:nth-child(3) { --tx: -30px;  --ty: 40px;  animation-delay: 0.04s; }
+  .wand-spark span:nth-child(4) { --tx: 30px;   --ty: -60px; animation-delay: 0.1s; }
+  .wand-spark span:nth-child(5) { --tx: 80px;   --ty: 30px;  animation-delay: 0.05s; }
+  .wand-spark span:nth-child(6) { --tx: 130px;  --ty: -20px; animation-delay: 0.12s; }
+  @keyframes wand-spark-fly {
+    0%   { opacity: 1; transform: translate(0,0) scale(0.4) rotate(0deg); }
+    30%  { opacity: 1; transform: translate(calc(var(--tx)/3), calc(var(--ty)/3)) scale(1.1) rotate(120deg); }
+    100% { opacity: 0; transform: translate(var(--tx), var(--ty)) scale(0.5) rotate(360deg); }
+  }
+  .artifact-slot { position: relative; }
+  .artifact-slot .damage-reveal {
+    margin-top: 10px;
+    padding: 10px 12px;
+    background: rgba(43,24,16,0.08);
+    border-radius: 4px;
+    text-align: center;
+  }
+  .artifact-slot .damage-reveal .dmg-label {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--ink-light);
+    font-weight: bold;
+    margin-bottom: 2px;
+  }
+  .artifact-slot .damage-reveal .dmg-value {
+    font-size: 26px;
+    font-weight: bold;
+    color: var(--crimson);
+    font-family: 'Georgia', serif;
+  }
+  .artifact-submit {
+    background: var(--crimson);
+    color: var(--parchment);
+    border: none;
+    padding: 10px 18px;
+    font-size: 12px;
+    font-weight: bold;
+    letter-spacing: 0.15em;
+    border-radius: 4px;
+    font-family: 'Georgia', serif;
+    cursor: pointer;
+    margin-top: 6px;
+    width: 100%;
+  }
+  .artifact-continue {
+    background: rgba(232, 193, 80, 0.2);
+    border: 2px solid var(--gold-bright);
+    color: var(--gold-bright);
+    padding: 14px 30px;
+    font-size: 14px;
+    font-weight: bold;
+    letter-spacing: 0.2em;
+    border-radius: 4px;
+    font-family: 'Georgia', serif;
+    cursor: pointer;
+    margin-top: 12px;
+    text-shadow: 0 0 8px rgba(255, 217, 102, 0.3);
+  }
+  .artifact-continue:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  /* SCENE 5: STOP screen (Cat Street, etc) */
+  #scene-stop.visible {
+    display: flex !important;
+    flex-direction: column !important;
+    padding: 70px 20px 100px !important;
+    overflow-y: auto !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    background: radial-gradient(ellipse at center, #2a1f10 0%, #0a0805 80%);
+  }
+  #scene-map.visible {
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    padding: 60px 20px 100px !important;
+    overflow-y: auto !important;
+  }
+  .stop-card {
+    background:
+      radial-gradient(ellipse at 30% 20%, rgba(212, 175, 55, 0.06) 0%, transparent 50%),
+      linear-gradient(135deg, #e8d9b0 0%, #d4c39a 100%);
+    border-radius: 6px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.8), inset 0 0 80px rgba(139,90,43,0.3);
+    padding: 24px 22px;
+    width: 100%;
+    max-width: 540px;
+    color: var(--ink);
+    position: relative;
+    margin-bottom: 18px;
+  }
+  .stop-card::before {
+    content: '';
+    position: absolute; inset: 6px;
+    border: 1px solid rgba(139, 90, 43, 0.3);
+    border-radius: 3px;
+    pointer-events: none;
+  }
+  .stop-tag {
+    color: var(--crimson);
+    font-size: 11px;
+    letter-spacing: 0.3em;
+    font-weight: bold;
+    margin-bottom: 6px;
+  }
+  .stop-title {
+    font-size: 22px;
+    margin-bottom: 6px;
+    letter-spacing: 0.05em;
+  }
+  .stop-cn {
+    font-family: 'Songti SC', 'STSong', serif;
+    color: var(--ink-light);
+    font-size: 16px;
+    margin-bottom: 14px;
+  }
+  .stop-img-wrap {
+    margin: 0 0 18px;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 2px solid #8b5a2b;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5), inset 0 0 30px rgba(139,90,43,0.2);
+    background: #1a1208;
+    aspect-ratio: 16 / 9;
+    display: block;
+  }
+  .stop-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .stop-lore {
+    font-size: 14px;
+    line-height: 1.7;
+    margin-bottom: 18px;
+  }
+  .stop-lore .accent {
+    color: var(--crimson);
+    font-weight: bold;
+  }
+  .riddle-box {
+    background: rgba(43, 24, 16, 0.08);
+    border-left: 3px solid var(--crimson);
+    padding: 14px 16px;
+    margin: 16px 0;
+    font-style: italic;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .riddle-box .riddle-tag {
+    color: var(--crimson);
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    font-style: normal;
+    font-weight: bold;
+    margin-bottom: 6px;
+    display: block;
+  }
+  .password-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 14px;
+    align-items: stretch;
+  }
+  .password-input {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.5);
+    border: 2px solid var(--ink-light);
+    border-radius: 4px;
+    padding: 12px 14px;
+    font-size: 16px;
+    font-family: 'Georgia', serif;
+    color: var(--ink);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+  .password-input:focus {
+    outline: none;
+    border-color: var(--crimson);
+    background: rgba(255, 255, 255, 0.85);
+  }
+  .password-submit {
+    background: var(--crimson);
+    color: var(--parchment);
+    border: none;
+    padding: 12px 22px;
+    font-size: 13px;
+    font-weight: bold;
+    letter-spacing: 0.15em;
+    border-radius: 4px;
+    font-family: 'Georgia', serif;
+    cursor: pointer;
+  }
+  .password-submit:active { background: #6a0000; }
+  .password-feedback {
+    font-size: 13px;
+    margin-top: 10px;
+    min-height: 18px;
+    font-weight: bold;
+  }
+  .password-feedback.wrong { color: var(--crimson); }
+  .password-feedback.right { color: #2d6a4f; }
+
+  /* Dumbledore portrait */
+  .dumbledore-portrait {
+    position: absolute;
+    top: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 120px;
+    height: 120px;
+    object-fit: cover;
+    object-position: center 22%;
+    border-radius: 50%;
+    border: 3px solid var(--gold-bright);
+    box-shadow: 0 0 30px rgba(255, 217, 102, 0.4), 0 8px 24px rgba(0,0,0,0.7);
+    opacity: 0;
+    z-index: 5;
+    animation: dumb-appear 2s ease-out forwards;
+    animation-delay: 0.3s;
+  }
+  @keyframes dumb-appear {
+    0% { opacity: 0; transform: translateX(-50%) translateY(-20px) scale(0.7); }
+    100% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+  }
+  #scene-letter.visible {
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    padding: 170px 20px 40px !important;
+    overflow-y: auto !important;
+  }
+  #scene-letter .parchment { margin-top: 0; margin-left: auto; margin-right: auto; }
+  #scene-rules.visible {
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    padding: 70px 20px 100px !important;
+    overflow-y: auto !important;
+  }
+
+  /* Image-based HK map */
+  .map-image-wrap { position: relative; width: 100%; line-height: 0; }
+  .map-image { width: 100%; height: auto; display: block; border-radius: 6px; }
+  .map-pins { position: absolute; inset: 0; pointer-events: none; }
+  .map-pin {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    pointer-events: auto;
+    cursor: pointer;
+  }
+  .map-pin .pin-dot {
+    width: 42px; height: 42px;
+    margin: 0 auto;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .pin-emoji {
+    background: radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(232,217,176,0.9) 100%);
+    border: 3px solid #c92a2a;
+    border-radius: 50%;
+    font-size: 22px;
+    line-height: 1;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.7);
+    z-index: 2;
+  }
+  .map-pin.done .pin-emoji {
+    background: radial-gradient(circle, rgba(214,239,214,0.95) 0%, rgba(149,213,178,0.9) 100%);
+    border-color: #2d6a4f;
+    filter: saturate(0.85);
+    position: relative;
+  }
+  .map-pin.done .pin-emoji::after {
+    content: '✓';
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 18px;
+    height: 18px;
+    background: #2d6a4f;
+    color: #fff;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    font-size: 11px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+  .map-pin.active .pin-emoji {
+    border-color: #ffd966;
+    border-width: 4px;
+    background: radial-gradient(circle, #fff5d0 0%, #ffd966 100%);
+    box-shadow: 0 0 18px rgba(255, 217, 102, 0.9), 0 6px 16px rgba(0,0,0,0.7);
+  }
+  .map-pin .pin-label {
+    font-family: 'Georgia', serif;
+    font-size: 10px;
+    font-weight: bold;
+    color: #ffd966;
+    margin-top: 5px;
+    white-space: nowrap;
+    letter-spacing: 0.04em;
+    background: rgba(20, 12, 6, 0.92);
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 217, 102, 0.5);
+    display: inline-block;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.7);
+  }
+  .map-pin.active .pin-dot {
+    animation: pin-float 2s ease-in-out infinite;
+  }
+  .map-pin.active .pin-dot::before {
+    content: '';
+    position: absolute;
+    inset: -12px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 217, 102, 0.6) 0%, rgba(201, 42, 42, 0.3) 40%, transparent 70%);
+    animation: pin-aura 1.5s ease-in-out infinite;
+    z-index: 0;
+  }
+  .map-pin.active .pin-label {
+    color: #ffd966;
+    text-shadow: 0 1px 3px #000, 0 0 8px rgba(255, 217, 102, 0.7);
+  }
+  /* "GO HERE →" tag shown only on the active pin */
+  .pin-go {
+    display: none;
+  }
+  .map-pin.active .pin-go {
+    display: inline-block;
+    margin-top: 4px;
+    font-family: 'Georgia', serif;
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 0.18em;
+    color: #fff;
+    background: linear-gradient(135deg, #c92a2a 0%, #7a0f0f 100%);
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1.5px solid #ffd966;
+    box-shadow: 0 4px 12px rgba(201,42,42,0.6), 0 0 14px rgba(255,217,102,0.5);
+    text-shadow: 0 1px 2px #000;
+    white-space: nowrap;
+    animation: go-here-pulse 1.3s ease-in-out infinite;
+  }
+  @keyframes go-here-pulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 4px 12px rgba(201,42,42,0.6), 0 0 14px rgba(255,217,102,0.5); }
+    50%      { transform: scale(1.08); box-shadow: 0 4px 12px rgba(201,42,42,0.7), 0 0 26px rgba(255,217,102,0.85); }
+  }
+  .map-pin.locked { display: none; }
+  @keyframes pin-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+  }
+  @keyframes pin-aura {
+    0%, 100% { opacity: 0.55; transform: scale(0.9); }
+    50% { opacity: 1; transform: scale(1.2); }
+  }
+  @keyframes pin-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-3px); }
+  }
+  .pin-svg { position: relative; z-index: 2; filter: drop-shadow(0 3px 6px rgba(0,0,0,0.7)); }
+
+  /* Dumbledore narration card */
+  .map-narration {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+  }
+  .dd-avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    object-fit: cover;
+    object-position: center 22%;
+    border: 2px solid var(--gold-bright);
+    flex-shrink: 0;
+    box-shadow: 0 0 14px rgba(255, 217, 102, 0.4), 0 4px 12px rgba(0,0,0,0.6);
+    background: #1a1208;
+  }
+  .map-narration .narration-body { flex: 1; }
+
+  /* Miko avatar */
+  .miko-icon {
+    display: block;
+    width: 130px;
+    height: 130px;
+    border-radius: 50%;
+    object-fit: cover;
+    object-position: top center;
+    border: 3px solid var(--gold-bright);
+    box-shadow: 0 0 30px rgba(255, 217, 102, 0.5), 0 8px 24px rgba(0,0,0,0.8);
+    margin: 0 auto 24px;
+    opacity: 0;
+    animation: miko-fade 1.5s ease-out forwards;
+    animation-delay: 0.2s;
+  }
+  @keyframes miko-fade {
+    0% { opacity: 0; transform: scale(0.85); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+
+  /* Miko marker on map - "you are here" */
+  .miko-marker {
+    position: absolute;
+    transform: translate(-50%, -100%);
+    pointer-events: none;
+    z-index: 10;
+    transition: left 1.2s cubic-bezier(0.4, 0, 0.2, 1), top 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .miko-marker img {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    object-fit: cover;
+    object-position: top center;
+    border: 2px solid #ffd966;
+    box-shadow: 0 0 12px rgba(255, 217, 102, 0.8), 0 4px 10px rgba(0,0,0,0.7);
+    display: block;
+    animation: miko-bob 2.5s ease-in-out infinite;
+    margin: 0 auto;
+  }
+  .miko-here {
+    display: block;
+    margin-top: 2px;
+    font-family: 'Georgia', serif;
+    font-size: 9px;
+    font-weight: bold;
+    letter-spacing: 0.18em;
+    color: #fff;
+    background: linear-gradient(135deg, #2d6a4f 0%, #14452f 100%);
+    padding: 3px 7px;
+    border-radius: 999px;
+    border: 1.5px solid #95d5b2;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.6);
+    text-shadow: 0 1px 2px #000;
+    white-space: nowrap;
+    text-align: center;
+  }
+  .miko-marker.at-start .miko-here { display: none; }
+  .miko-marker::after {
+    content: '';
+    display: block;
+    width: 0; height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 8px solid #ffd966;
+    margin: -2px auto 0;
+    filter: drop-shadow(0 2px 3px rgba(0,0,0,0.5));
+  }
+  @keyframes miko-bob {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-3px); }
+  }
+
+  /* Keepsake button on victory */
+  /* Curtain call */
+  .curtain-call {
+    margin: 22px -6px 6px;
+    padding: 16px 8px 12px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.4) 0%, rgba(232, 217, 176, 0.3) 100%);
+    border-top: 1px solid rgba(212, 175, 55, 0.5);
+    border-bottom: 1px solid rgba(212, 175, 55, 0.5);
+    border-radius: 4px;
+    text-align: center;
+  }
+  .curtain-tag {
+    color: var(--crimson);
+    font-size: 10px;
+    letter-spacing: 0.28em;
+    font-weight: bold;
+    margin-bottom: 14px;
+  }
+  .curtain-trio {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .curtain-fig {
+    border-radius: 6px;
+    padding: 8px 4px;
+    border: 1.5px solid transparent;
+    transition: all 0.3s ease;
+    animation: curtain-fade-in 0.8s ease forwards;
+    opacity: 0;
+  }
+  .curtain-fig:nth-child(1) { animation-delay: 0.2s; }
+  .curtain-fig:nth-child(2) { animation-delay: 0.5s; }
+  .curtain-fig:nth-child(3) { animation-delay: 0.8s; }
+  @keyframes curtain-fade-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .curtain-fig.curtain-gryf { border-color: #7a0a14; background: linear-gradient(180deg, rgba(122,10,20,0.18) 0%, rgba(212,175,55,0.12) 100%); }
+  .curtain-fig.curtain-slyt { border-color: #1a5d3a; background: linear-gradient(180deg, rgba(26,93,58,0.18) 0%, rgba(170,170,170,0.1) 100%); }
+  .curtain-fig.curtain-huff { border-color: #d9a814; background: linear-gradient(180deg, rgba(217,168,20,0.22) 0%, rgba(26,18,8,0.18) 100%); }
+  .curtain-fig img {
+    width: 100%;
+    aspect-ratio: 3 / 4;
+    object-fit: cover;
+    object-position: center 18%;
+    border-radius: 4px;
+    display: block;
+    margin-bottom: 4px;
+    border: 1px solid rgba(60,40,18,0.3);
+  }
+  .curtain-name {
+    font-family: 'Georgia', serif;
+    font-size: 11px;
+    color: var(--ink);
+    font-weight: bold;
+    letter-spacing: 0.1em;
+    margin-top: 2px;
+  }
+  .curtain-house {
+    font-family: 'Georgia', serif;
+    font-size: 10px;
+    font-weight: bold;
+    letter-spacing: 0.18em;
+    margin-top: 1px;
+  }
+  .curtain-fig.curtain-gryf .curtain-house { color: #7a0a14; }
+  .curtain-fig.curtain-slyt .curtain-house { color: #1a5d3a; }
+  .curtain-fig.curtain-huff .curtain-house { color: #a07408; }
+
+  .keepsake-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin: 18px auto 0;
+    padding: 14px 26px;
+    background: #1a1208;
+    border: 2px solid #8b5a2b;
+    border-radius: 6px;
+    color: #f4e4b0;
+    font-family: 'Georgia', serif;
+    font-size: 13px;
+    font-weight: bold;
+    letter-spacing: 0.2em;
+    text-shadow: 0 1px 2px #000;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .keepsake-btn:active { transform: scale(0.97); background: #2a1f10; }
+  .keepsake-btn.copied {
+    background: #1a4a2a;
+    border-color: #4caf50;
+    color: #d8f5e0;
+  }
+  .keepsake-seal {
+    font-size: 18px;
+    color: #f4e4b0;
+  }
+
+  /* Letter page system */
+  .letter-page { display: none; }
+  .letter-page.active { display: block; }
+  .letter-text-cn .letter-page-1.active,
+  .letter-text-cn .letter-page-2.active { display: block; }
+  .page-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin: 14px auto 8px;
+    max-width: 540px;
+    width: 100%;
+  }
+  .page-nav-btn {
+    background: rgba(20, 12, 6, 0.85);
+    border: 2px solid var(--gold-bright);
+    color: var(--gold-bright);
+    padding: 10px 18px;
+    font-size: 12px;
+    font-weight: bold;
+    letter-spacing: 0.15em;
+    font-family: 'Georgia', serif;
+    cursor: pointer;
+    border-radius: 4px;
+    text-shadow: 0 1px 2px #000;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  }
+  .page-nav-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+  .page-nav-btn:active:not(:disabled) {
+    background: rgba(232, 193, 80, 0.35);
+  }
+  .page-indicator {
+    color: var(--gold-bright);
+    font-family: 'Georgia', serif;
+    font-style: italic;
+    font-size: 13px;
+    letter-spacing: 0.15em;
+    opacity: 1;
+    background: rgba(20, 12, 6, 0.7);
+    padding: 6px 14px;
+    border-radius: 999px;
+    text-shadow: 0 1px 2px #000;
+  }
+</style>
+</head>
+<body>
+
+<!-- RESUME OVERLAY — shown only when a saved scene is restored on page reload -->
+<div id="resumeOverlay" class="resume-overlay" style="display:none;" onclick="dismissResumeOverlay()">
+  <div class="resume-card">
+    <div class="resume-glyph">🪄</div>
+    <div class="resume-tag">~ THE QUEST CONTINUES ~</div>
+    <div class="resume-title" id="resumeTitle">Welcome back, Miko Takeshi</div>
+    <div class="resume-body">The Order has been waiting. Tap anywhere to pick up where you left off.</div>
+    <div class="resume-cta">TAP TO RESUME</div>
+  </div>
+</div>
+
+<!-- SCENE 1: COLD OPEN -->
+<div id="scene-cold" class="scene visible">
+  <div style="text-align:center;">
+    <img class="miko-icon" id="mikoIcon" src="assets/mikoIcon.png" alt="Miko">
+    <div class="ink-name" id="inkName">MIKO TAKESHI</div>
+    <div class="sub-text" id="subText">…the order has chosen you.</div>
+  </div>
+  <div class="cold-tap" id="coldTap" onclick="goToLetter()">TAP TO CONTINUE</div>
+</div>
+
+<!-- SCENE 2: DUMBLEDORE'S LETTER -->
+<div id="scene-letter" class="scene">
+  <button class="back-btn" onclick="goBack()" aria-label="Back">←</button>
+    <img class="dumbledore-portrait" src="assets/image_1.jpg" alt="Dumbledore">
+  <div class="parchment" id="parchment"
+       ontouchstart="touchLetter(true)" ontouchend="touchLetter(false)"
+       onmousedown="touchLetter(true)" onmouseup="touchLetter(false)" onmouseleave="touchLetter(false)">
+    <div class="letter-text-cn">
+      <div class="letter-page letter-page-1">
+      <p>親愛的 Miko Takeshi，</p>
+      <p>今日是你十三歲生日。多年來，我一直在等待寫下這封信的時刻 — 因為我始終知道，這個清晨終將來臨。</p>
+      <p>當太陽升起香港之上，這座城市對其他人來說與往常無異 — 天星小輪依舊穿越維港，茶樓裡人聲鼎沸，麻瓜們各自忙碌。然而在這片燈火之下，我們最古老的陰影已再度甦醒。</p>
+      <p>這一次，他沒有回到英倫。他選擇了<i>這裡</i> — 一座他以為光明早已遺忘的城市。</p>
+      <p>而他做了我多年來最害怕他會做的事。</p>
+      <p><b>他擄走了 Harry。他擄走了 Ron。他擄走了 Hermione。</b></p>
+      <p style="text-align:center; margin: 16px 0;"><img src="assets/image_2.jpg" alt="Harry, Ron, Hermione captured" style="max-width:75%; border-radius:4px; border:1px solid rgba(139,90,43,0.5); box-shadow: 0 4px 16px rgba(0,0,0,0.4); filter: grayscale(0.4) brightness(0.85);"></p>
+      </div>
+      <div class="letter-page letter-page-2">
+      <p>那三位曾在不列顛森林中與他對峙之人，如今被囚於這座海港燈火之下的某處。他封印了他們的魔法，使他們無法觸及他。能潛入他藏身之處的，唯有他不知姓名之人 — 那些連他都看不見的影子。</p>
+      <p>鳳凰社遍尋天下，只為尋得三位有膽量代他們而戰的麻瓜。而鳳凰社已選中了你、Michael 與 Andrea。</p>
+      <p>尋找這座城市的四處聖地。在第一處 — 摩羅上街 — 你們三人需各自拾起呼喚自己的事物。一塊石、一枚錢幣、一件攤上之物。此即你們對抗他的三件武器。其餘三處皆為「門」而非「市」 — 唸出每處之封印，便可通過。信任與你同行的二人。信任這座城市本身。</p>
+      <p>當第八時辰的鐘聲響徹海港，當燈光開始舞動之時，你必須準備好。那是他最虛弱的一刻。那是黑魔王可以倒下的一刻。</p>
+      <p>當他倒下，我們所摯愛的三人便將重獲自由。</p>
+      <p>我始終深信，你會前來。</p>
+      <div class="signature">懷著全然的信任，<br>A. P. W. B. 鄧不利多</div>
+      </div>
+    </div>
+    <div class="letter-text-en">
+      <div class="letter-page letter-page-1">
+      <p>My dear Miko Takeshi,</p>
+      <p>Today is your thirteenth birthday. I have been waiting many years to write this letter — for I have always known this morning would come.</p>
+      <p>As the sun rose on Hong Kong, the city below it woke like any other — the Star Ferry crossing the harbor, the tea houses filling, the Muggles going about their day. But beneath these lights, our oldest darkness has stirred again.</p>
+      <p>This time, he did not return to England. He chose <i>here</i> — a city he believes the light has long forgotten.</p>
+      <p>And he has done what I have feared, for many years, that he would do.</p>
+      <p><b>He has taken Harry. He has taken Ron. He has taken Hermione.</b></p>
+      <p style="text-align:center; margin: 16px 0;"><img src="assets/image_2.jpg" alt="Harry, Ron, Hermione captured" style="max-width:75%; border-radius:4px; border:1px solid rgba(139,90,43,0.5); box-shadow: 0 4px 16px rgba(0,0,0,0.4); filter: grayscale(0.4) brightness(0.85);"></p>
+      </div>
+      <div class="letter-page letter-page-2">
+      <p>The three who once stood against him in the woods of Britain are now held somewhere beneath this harbor's lights. He has bound their magic. They cannot reach him. The only ones who can walk where he hides are those whose names he does not know — those he cannot see coming.</p>
+      <p>The Order has searched the world for three Muggles with the courage to stand in their place tonight. The Order has chosen you, Michael, and Andrea.</p>
+      <p>Find the four sacred places of this city. At the first — Cat Street — each of you must gather what calls to you. A stone. A coin. A trinket from the stalls. These will be your three weapons against him. The other three places are gates, not markets — speak the seal at each and pass through. Trust the two who walk beside you. Trust the city itself.</p>
+      <p>When the eighth hour rings across the harbor and the lights begin to dance, you must be ready. That is the moment he is weakest. That is the moment the dark one can fall.</p>
+      <p>And when he falls, the three we love will be free.</p>
+      <p>I have always known you would come.</p>
+      <div class="signature">With every belief,<br>A. P. W. B. Dumbledore</div>
+      </div>
+    </div>
+  </div>
+  <div class="letter-audio-row">
+    <button class="letter-audio-btn" id="letterAudioBtn" onclick="toggleLetterAudio()" aria-label="Play Dumbledore">
+      <span class="letter-audio-icon" id="letterAudioIcon">▶</span>
+      <span class="letter-audio-label" id="letterAudioLabel">HEAR DUMBLEDORE</span>
+    </button>
+    <audio id="letterAudio" preload="none"></audio>
+  </div>
+  <div class="touch-hint">PRESS AND HOLD THE PARCHMENT TO TRANSLATE</div>
+  <div class="page-nav">
+    <button class="page-nav-btn" id="letterPrevBtn" onclick="letterPage(1)" disabled>← PREVIOUS</button>
+    <span class="page-indicator" id="letterPageIndicator">1 / 2</span>
+    <button class="page-nav-btn" id="letterNextBtn" onclick="letterPage(2)">NEXT PAGE →</button>
+  </div>
+  <button class="next-btn" id="letterContinueBtn" onclick="openSorting()" style="display:none;">CONTINUE</button>
+</div>
+
+
+<!-- SCENE 2.5: SORTING CEREMONY -->
+<div id="scene-sorting" class="scene">
+  <button class="back-btn" onclick="goBack()" aria-label="Back">←</button>
+  <div class="sorting-card">
+    <img class="sorting-dd-portrait" id="sortingDdPortrait" alt="Dumbledore">
+    <div class="sorting-tag">~ ONE THING MORE ~</div>
+    <div class="sorting-title">The Sorting</div>
+    <div class="sorting-speech" id="sortingSpeech"></div>
+    <div class="letter-audio-row" style="margin-bottom:16px;">
+      <button class="letter-audio-btn" id="sortingAudioBtn" onclick="toggleSortingAudio()" aria-label="Play Dumbledore">
+        <span class="letter-audio-icon">▶</span>
+        <span class="letter-audio-label">HEAR DUMBLEDORE</span>
+      </button>
+    </div>
+
+    <div class="sort-grid">
+      <div class="sort-slot" data-person="miko">
+        <div class="sort-name">MIKO TAKESHI</div>
+        <div class="sort-photo-wrap">
+          <img class="sort-photo" id="sortPhotoMiko" alt="Miko">
+        </div>
+        <div class="sort-mutter" id="sortMutterMiko"></div>
+        <div class="sort-house" id="sortHouseMiko"></div>
+      </div>
+
+      <div class="sort-slot" data-person="michael">
+        <div class="sort-name">MICHAEL</div>
+        <div class="sort-photo-wrap">
+          <img class="sort-photo" id="sortPhotoMichael" alt="Michael">
+        </div>
+        <div class="sort-mutter" id="sortMutterMichael"></div>
+        <div class="sort-house" id="sortHouseMichael"></div>
+      </div>
+
+      <div class="sort-slot" data-person="andrea">
+        <div class="sort-name">ANDREA</div>
+        <div class="sort-photo-wrap">
+          <img class="sort-photo" id="sortPhotoAndrea" alt="Andrea">
+        </div>
+        <div class="sort-mutter" id="sortMutterAndrea"></div>
+        <div class="sort-house" id="sortHouseAndrea"></div>
+      </div>
+    </div>
+
+    <button class="sort-action-btn" id="sortHatBtn" onclick="placeSortingHat()">🎩 PLACE THE SORTING HAT</button>
+    <button class="sort-action-btn" id="sortRevealBtn" onclick="revealHouses()" style="display:none;">REVEAL THE HOUSES →</button>
+    <button class="sort-action-btn sort-continue" id="sortContinueBtn" onclick="goToRulesFromSorting()" style="display:none;">CONTINUE THE QUEST →</button>
+  </div>
+</div>
+
+<!-- SCENE 3: RULES PAGE WITH DOBBY -->
+<div id="scene-rules" class="scene">
+  <button class="back-btn" onclick="goBack()" aria-label="Back">←</button>
+  <div class="rules-parchment">
+    <div class="rules-title">THE LAWS OF THE QUEST</div>
+    <div class="rules-subtitle">~ as set by the Order of the Hidden Light ~</div>
+
+    <div class="rule">
+      <div class="rule-num">THE FIRST LAW</div>
+      <div class="rule-title">Foods and Drinks Carry Powers</div>
+      <div class="rule-body">Across this city, certain dishes hold magic remembered from older times. To partake is to inherit. Each meal you share will offer travel powers — to be used between sacred places, or held until the final hour.</div>
+    </div>
+
+    <div class="rule">
+      <div class="rule-num">THE SECOND LAW</div>
+      <div class="rule-title">Artifacts Hold the Power to Defeat Him</div>
+      <div class="rule-body">At the first sacred place — Cat Street — each of you must find <i>one</i> object that calls to you. A stone, a coin, a charm. Name its power together. These three become your only weapons against him — but each weapon carries three charges, one for every sacred place that follows. Without them, the dark one cannot be undone.</div>
+    </div>
+
+    <div class="rule">
+      <div class="rule-num">THE THIRD LAW</div>
+      <div class="rule-title">Every Place Hides a Password</div>
+      <div class="rule-body">Each sacred place keeps a secret that has always been there — carved in stone, written in characters, marked by time. Find it. Speak it. Only then will the next place reveal itself upon the map.</div>
+    </div>
+  </div>
+
+  <button class="next-btn" onclick="goToMap()">I AM READY</button>
+</div>
+
+<!-- SCENE 4: MAP REVEAL -->
+<div id="scene-map" class="scene">
+  <button class="back-btn" onclick="goBack()" aria-label="Back">←</button>
+  <div class="map-header">~ THE MAP OF HONG KONG ~</div>
+  <div class="map-canvas">
+    <div class="map-image-wrap">
+      <img class="map-image" src="assets/image_4.jpg" alt="Hong Kong">
+      <div class="map-pins">
+        <!-- Miko's location marker - moves as he progresses -->
+        <div class="miko-marker at-start" id="mikoMarker" style="left: 47%; top: 31%;">
+          <img src="assets/mikoIcon.png" alt="Miko is here">
+        
+          <div class="miko-here">YOU ARE HERE</div>
+        </div>
+        <!-- Cat Street (Sheung Wan - active) -->
+        <div class="map-pin active" style="left: 39%; top: 56%;" data-stop="cat" onclick="openStop('cat')">
+          <div class="pin-dot pin-emoji">🐈</div>
+          <div class="pin-label">Cat Street</div>
+          <div class="pin-go">GO HERE →</div>
+          <div class="pin-label">Cat Street 摩羅上街</div>
+        </div>
+        <!-- Man Mo Temple (Sheung Wan - locked) -->
+        <div class="map-pin locked" style="left: 42%; top: 58%;" data-stop="manmo">
+          <div class="pin-dot pin-emoji">🐉</div>
+          <div class="pin-label">Man Mo Temple</div>
+          <div class="pin-go">GO HERE →</div>
+        </div>
+        <!-- Peak Tram (locked) -->
+        <div class="map-pin locked" style="left: 47%; top: 66%;" data-stop="peak">
+          <div class="pin-dot pin-emoji">🚞</div>
+          <div class="pin-label">The Peak</div>
+          <div class="pin-go">GO HERE →</div>
+        </div>
+        <!-- Clock Tower (TST - locked) -->
+        <div class="map-pin locked" style="left: 50%; top: 51%;" data-stop="clock">
+          <div class="pin-dot pin-emoji">🕰️</div>
+          <div class="pin-label">Clock Tower</div>
+          <div class="pin-go">GO HERE →</div>
+        </div>
+      </div>
+    </div>
+
+  <div class="map-narration">
+    <img class="dd-avatar" src="assets/image_1.jpg" alt="Dumbledore">
+    <div class="narration-body">
+      <span class="speaker">DUMBLEDORE</span>
+      <span id="mapNarrationText">Your first destination calls to you from the southern shore — Sheung Wan's Cat Street, where the merchants once hid more than antiques in the lanes. Tap the glowing mark.</span>
+      <div style="margin-top:10px;">
+        <button class="letter-audio-btn" id="mapNarrationAudioBtn" onclick="toggleMapNarrationAudio()" aria-label="Play Dumbledore">
+          <span class="letter-audio-icon">▶</span>
+          <span class="letter-audio-label">HEAR DUMBLEDORE</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<!-- SCENE 5: CAT STREET STOP -->
+<div id="scene-stop" class="scene">
+  <button class="back-btn" onclick="goBackToMap()" aria-label="Back">←</button>
+  <div class="stop-card" id="stopCard">
+    <div class="stop-tag" id="stopCardTag">THE FIRST SACRED PLACE</div>
+    <div class="stop-title" id="stopCardTitle">Cat Street</div>
+    <div class="stop-cn" id="stopCardCn">摩羅上街  |  Sheung Wan</div>
+    <div class="stop-img-wrap" id="stopImgWrap"><img class="stop-img" id="stopCardImg" alt="" loading="lazy" referrerpolicy="no-referrer"></div>
+    <div class="stop-lore" id="stopCardLore"></div>
+    <div class="riddle-box">
+      <span class="riddle-tag">~ THE RIDDLE ~</span>
+      <span id="stopCardRiddle"></span>
+    </div>
+    <div class="password-row">
+      <input type="text" class="password-input" id="passwordInput" placeholder="enter the seal" autocomplete="off" autocapitalize="characters" inputmode="numeric">
+      <button class="password-submit" id="stopSubmitBtn">SPEAK</button>
+    </div>
+    <div class="password-feedback" id="passwordFeedback"></div>
+  </div>
+</div>
+
+<!-- SCENE 6: ARTIFACT LOG -->
+<div id="scene-artifact" class="scene">
+  <button class="back-btn" onclick="goBackToMap()" aria-label="Back">←</button>
+  <div class="artifact-header">
+    <div class="tag">~ THE OFFERINGS ~</div>
+    <div class="title" id="artifactStopTitle">Cat Street</div>
+    <div class="sub">Each of you, choose one piece from the stalls and name its power.</div>
+  </div>
+
+  <div class="artifact-slot" data-person="miko">
+    <div class="who">THE CHOSEN HEIR</div>
+    <div class="who-name">Miko</div>
+    <div class="field">
+      <label>WHAT YOU CHOSE</label>
+      <input type="text" id="mikoItem" placeholder="e.g. jade dragon pendant" autocomplete="off">
+    </div>
+    <div class="field">
+      <label>NAME ITS POWER</label>
+      <input type="text" id="mikoPower" placeholder="e.g. Dragon's Breath" autocomplete="off">
+    </div>
+    <button class="artifact-submit" onclick="lockArtifact('miko')">LOCK IT IN</button>
+    <div class="damage-reveal" id="mikoDmg" style="display:none;">
+      <div class="dmg-label">DAMAGE</div>
+      <div class="dmg-value" id="mikoDmgVal">—</div>
+    </div>
+  </div>
+
+  <div class="artifact-slot michael" data-person="michael">
+    <div class="who">SWORN GUARDIAN</div>
+    <div class="who-name">Michael</div>
+    <div class="field">
+      <label>WHAT YOU CHOSE</label>
+      <input type="text" id="michaelItem" placeholder="e.g. old bronze coin" autocomplete="off">
+    </div>
+    <div class="field">
+      <label>NAME ITS POWER</label>
+      <input type="text" id="michaelPower" placeholder="e.g. Lion's Roar" autocomplete="off">
+    </div>
+    <button class="artifact-submit" onclick="lockArtifact('michael')">LOCK IT IN</button>
+    <div class="damage-reveal" id="michaelDmg" style="display:none;">
+      <div class="dmg-label">DAMAGE</div>
+      <div class="dmg-value" id="michaelDmgVal">—</div>
+    </div>
+  </div>
+
+  <div class="artifact-slot andrea" data-person="andrea">
+    <div class="who">SWORN GUARDIAN</div>
+    <div class="who-name">Andrea</div>
+    <div class="field">
+      <label>WHAT YOU CHOSE</label>
+      <input type="text" id="andreaItem" placeholder="e.g. carved wooden Buddha" autocomplete="off">
+    </div>
+    <div class="field">
+      <label>NAME ITS POWER</label>
+      <input type="text" id="andreaPower" placeholder="e.g. Mind's Eye" autocomplete="off">
+    </div>
+    <button class="artifact-submit" onclick="lockArtifact('andrea')">LOCK IT IN</button>
+    <div class="damage-reveal" id="andreaDmg" style="display:none;">
+      <div class="dmg-label">DAMAGE</div>
+      <div class="dmg-value" id="andreaDmgVal">—</div>
+    </div>
+  </div>
+
+  <button class="artifact-continue" id="artifactContinue" onclick="finishStop()" disabled>CONTINUE THE QUEST →</button>
+</div>
+
+<!-- SCENE 6.5: DIM SUM AT MAXIM'S PALACE -->
+<div id="scene-dimsum" class="scene">
+  <button class="back-btn" onclick="goBackToMap()" aria-label="Back">←</button>
+  <div class="dimsum-card">
+    <div class="dimsum-tag">~ AN INTERLUDE OF NOURISHMENT ~</div>
+    <div class="dimsum-title">Maxim's Palace</div>
+    <div class="dimsum-subtitle">美心皇宮 · City Hall, Central</div>
+    <div class="dimsum-lore">
+      <img class="dimsum-dobby-portrait" id="dimsumDobbyPortrait" alt="Dobby">
+      <div class="dimsum-lore-text">
+        Dobby insists: <i>"Master must eat well — the dark one is strong, and Master will need every ounce of strength when the eighth hour rings!"</i> Each dish carries an old kitchen-magic. Tap each one as the trolley brings it to your table. Every bite raises your strength for the battle to come.
+        <div style="margin-top:8px;">
+          <button class="letter-audio-btn" id="dimsumDobbyAudioBtn" onclick="toggleDimsumDobbyAudio()" aria-label="Play Dobby">
+            <span class="letter-audio-icon">▶</span>
+            <span class="letter-audio-label">HEAR DOBBY</span>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="dimsum-hp-banner">
+      <span class="dimsum-hp-label">YOUR STRENGTH</span>
+      <span class="dimsum-hp-value">+<span id="dimsumHpTotal">0</span> ❤</span>
+    </div>
+    <div class="dimsum-grid" id="dimsumGrid"></div>
+    <button class="dimsum-finish" id="dimsumFinishBtn" onclick="finishDimSum()" disabled>FINISH THE MEAL · CONTINUE →</button>
+    <div class="dimsum-hint" id="dimsumHint">Tap at least one dish to continue. The more you eat, the longer you stand against him.</div>
+  </div>
+</div>
+
+<!-- SCENE 7: COUNTDOWN -->
+<div id="scene-countdown" class="scene">
+  <div class="countdown-card">
+    <div class="ctd-tag">~ THE EIGHTH HOUR APPROACHES ~</div>
+    <div class="ctd-title">Walk to the Harbor's Edge</div>
+    <div class="ctd-clock" id="countdownClock">08:00</div>
+    <div class="ctd-instruction" id="countdownInstruction">The dark one's mark glows on Avenue of Stars. Be there before the lights begin. When you arrive, tap below to face him.</div>
+    <button class="ctd-begin" id="countdownBegin" onclick="openPreBattle()">I AM HERE — FACE HIM</button>
+  </div>
+</div>
+
+<!-- PRE-BATTLE DUMBLEDORE OVERLAY -->
+<div class="dd-overlay" id="preBattleOverlay">
+  <div class="dd-card">
+    <img class="dd-big-portrait" id="preBattlePortrait" src="" alt="Dumbledore">
+    <div class="dd-name">DUMBLEDORE</div>
+    <div class="dd-speech" id="preBattleSpeech">This is the moment, Miko Takeshi. The dark one stands before you on the harbour now — wreathed in shadow, but his power is at its weakest while the lights dance above the water.<br/><br/>You carry three weapons. Each one was forged at Cat Street and charged twice more — at Man Mo, and at the Peak. They will strike harder than any spell.<br/><br/>He will fight back. <i>Crucio</i>, <i>Sectumsempra</i>, the dark spells he loved most — he will hurl them at you. But you cannot fall, Miko. Not tonight. Harry, Ron, and Hermione lend you their strength from below the harbour. The Order watches over you. The lights themselves fight beside you.<br/><br/>Strike with everything you have. End him before the eighth hour rings.</div>
+    <div class="letter-audio-row" style="margin:8px 0 4px;">
+      <button class="letter-audio-btn" id="preBattleAudioBtn" onclick="togglePreBattleAudio()" aria-label="Play Dumbledore">
+        <span class="letter-audio-icon">▶</span>
+        <span class="letter-audio-label">HEAR DUMBLEDORE</span>
+      </button>
+    </div>
+    <button class="dd-continue" onclick="closePreBattle()">BEGIN THE FIGHT ⚔</button>
+  </div>
+</div>
+
+<!-- SCENE 8: BATTLE -->
+<div id="scene-battle" class="scene">
+  <div class="battle-top">
+    <div class="battle-voldemort">
+      <div class="vold-name">~ LORD VOLDEMORT ~</div>
+      <div class="vold-hp-row">
+        <div class="vold-hp-label"><span>HP</span><span id="voldHpText">200 / 200</span></div>
+        <div class="vold-hp-bar"><div class="vold-hp-fill" id="voldHpFill" style="width:100%;"></div></div>
+      </div>
+      <div class="vold-sprite-wrap" id="voldSpriteWrap">
+        <img class="vold-sprite vold-alive" id="voldSprite" src="assets/voldSprite.jpg" alt="Voldemort">
+        <img class="vold-sprite vold-dead" id="voldSpriteDead" src="assets/voldSpriteDead.jpg" alt="Voldemort defeated" style="display:none;">
+      </div>
+    </div>
+    <div class="battle-status" id="battleStatus">Tap a power to strike. Stronger powers deal more damage.</div>
+    <div class="hero-hp-row">
+      <div class="hero-hp-label"><span>MIKO · MICHAEL · ANDREA</span><span id="heroHpText">120 / 120</span></div>
+      <div class="hero-hp-bar"><div class="hero-hp-fill" id="heroHpFill" style="width:100%;"></div></div>
+    </div>
+  </div>
+
+  <div class="vold-cast-flash" id="voldCastFlash"></div>
+
+  <div class="battle-moves">
+    <div class="moves-tag">~ YOUR ARSENAL ~</div>
+    <div class="moves-grid" id="movesGrid">
+      <!-- Filled by JS from localStorage -->
+    </div>
+  </div>
+</div>
+
+<!-- SCENE 9: VICTORY -->
+<div id="scene-victory" class="scene">
+  <div class="victory-card">
+    <img class="victory-dd-portrait" id="victoryDdPortrait" src="" alt="Dumbledore">
+    <div class="victory-tag">~ THE LIGHT HAS WON ~</div>
+    <div class="letter-audio-row" style="margin: 6px 0 14px;">
+      <button class="letter-audio-btn" id="victoryAudioBtn" onclick="toggleVictoryAudio()" aria-label="Play Dumbledore">
+        <span class="letter-audio-icon">▶</span>
+        <span class="letter-audio-label">HEAR DUMBLEDORE</span>
+      </button>
+    </div>
+    <div class="victory-title">Happy 13th Birthday, Miko</div>
+    <div class="victory-message" id="victoryMessage">
+      You did it, Miko Takeshi. The dark one is gone — pulled apart by the very lights of the city you saved.
+      <br/><br/>
+      And as he fell, the chains beneath the harbor broke.
+      <br/><br/>
+      <b>Harry is free. Ron is free. Hermione is free.</b><br/><br/><div style="text-align:center;"><img src="assets/image_9.jpg" alt="Harry, Ron, Hermione free" style="max-width:80%; border-radius:6px; border:2px solid #d4af37; box-shadow: 0 8px 30px rgba(212,175,55,0.4), 0 0 60px rgba(255, 217, 102, 0.3);"></div> Even now, they are stepping back into the world above — because of you, because of Michael, because of Andrea. The Order will sing of the three muggles who stood where wizards could not, and saved the saviours themselves.
+      <br/><br/>
+      But the night is not yet over, my dear boy.
+      <br/><br/>
+      Harry, Ron, and Hermione wish to thank you. They have prepared one final journey for you — not across rooftops and harbors this time, but across <i>Diagon Alley, Hogsmeade, the Forbidden Forest,</i> and <i>Gringotts</i> itself. Michael and Andrea will lead you to it when you return to your chambers tonight. There are properties to claim, dragons to outwit, and galleons to spend. The three of you walked Hong Kong as a trio today. Tonight, you will play as one — with the trio you rescued.
+      <br/><br/>
+      Happy thirteenth birthday, my heir.
+      <br/><br/>
+      <span style="font-weight:bold;">— A. P. W. B. Dumbledore</span>
+      <br/><br/>
+      <!-- Curtain call -->
+      <div class="curtain-call">
+        <div class="curtain-tag">~ THE THREE WHO STOOD WHERE WIZARDS COULD NOT ~</div>
+        <div class="curtain-trio">
+          <div class="curtain-fig curtain-gryf">
+            <img id="curtainMiko" alt="Miko">
+            <div class="curtain-name">MIKO TAKESHI</div>
+            <div class="curtain-house">GRYFFINDOR</div>
+          </div>
+          <div class="curtain-fig curtain-slyt">
+            <img id="curtainMichael" alt="Michael">
+            <div class="curtain-name">MICHAEL</div>
+            <div class="curtain-house">SLYTHERIN</div>
+          </div>
+          <div class="curtain-fig curtain-huff">
+            <img id="curtainAndrea" alt="Andrea">
+            <div class="curtain-name">ANDREA</div>
+            <div class="curtain-house">HUFFLEPUFF</div>
+          </div>
+        </div>
+      </div>
+      <hr style="border:none; border-top:1px solid rgba(80,50,20,0.4); margin: 20px 30px;">
+      <div style="font-style:italic; font-size:14px; line-height:1.6; color:#3a2812;">
+        <b style="color:var(--crimson);">P.S.</b> &nbsp; Keep this scroll, Miko. The Order has bound it to a single thread of light — should you ever wish to remember the night you walked Hong Kong as a wizard and ended the dark one, tap the seal below. The link will be copied. Paste it into the Notes of your Muggle device, and the memory will live on as long as you wish it to.
+      </div>
+      <button class="keepsake-btn" id="keepsakeBtn" onclick="copyQuestLink()">
+        <span class="keepsake-seal">⚯</span>
+        <span id="keepsakeLabel">COPY THE MEMORY LINK</span>
+      </button>
+    </div>
+    <div class="gift-cue">🪄  MICHAEL + ANDREA — HEAD BACK TO THE HOTEL FOR HARRY POTTER MONOPOLY 🪄</div>
+  </div>
+</div>
+
+<!-- DOBBY DIRECTIONS OVERLAY -->
+<div class="dd-overlay" id="dobbyOverlay">
+  <div class="dd-card dobby-card">
+    <img class="dd-big-portrait dobby-big-portrait" id="dobbyBigPortrait" src="" alt="Dobby">
+    <div class="dd-name dobby-name">DOBBY</div>
+    <div class="dd-speech dobby-speech" id="dobbySpeech"></div>
+    <div class="letter-audio-row" style="margin:6px 0 4px;">
+      <button class="letter-audio-btn" id="dobbyOverlayAudioBtn" onclick="toggleDobbyOverlayAudio()" aria-label="Play Dobby">
+        <span class="letter-audio-icon">▶</span>
+        <span class="letter-audio-label">HEAR DOBBY</span>
+      </button>
+    </div>
+    <button class="dd-continue dobby-continue" onclick="closeDobbyOverlay()">OFF WE GO!</button>
+  </div>
+</div>
+
+<!-- DUMBLEDORE CONGRATS OVERLAY -->
+<div class="dd-overlay" id="ddOverlay">
+  <div class="dd-card">
+    <img class="dd-big-portrait" id="ddBigPortrait" src="" alt="Dumbledore">
+    <div class="dd-name">DUMBLEDORE</div>
+    <div class="dd-speech" id="ddSpeech"></div>
+    <div class="letter-audio-row" style="margin:6px 0 4px;">
+      <button class="letter-audio-btn" id="ddOverlayAudioBtn" onclick="toggleDDOverlayAudio()" aria-label="Play Dumbledore">
+        <span class="letter-audio-icon">▶</span>
+        <span class="letter-audio-label">HEAR DUMBLEDORE</span>
+      </button>
+    </div>
+    <button class="dd-continue" onclick="closeDDOverlay()">CONTINUE</button>
+  </div>
+</div>
+
+<!-- ====== DEV SKIP PANEL — REMOVE BEFORE GIVING TO MIKO ====== -->
+<div id="devPanel" style="position:fixed; top:6px; right:6px; z-index:9999; background:rgba(0,0,0,0.85); border:1px solid #ff9500; border-radius:6px; padding:6px; font-family:monospace; font-size:10px; max-width:140px;">
+  <div style="color:#ff9500; font-weight:bold; text-align:center; margin-bottom:4px; letter-spacing:0.05em;">DEV SKIP</div>
+  <button onclick="devSkip('letter')" style="display:block; width:100%; margin:2px 0; padding:4px; background:#333; color:#fff; border:1px solid #555; border-radius:3px; font-size:10px; cursor:pointer;">Letter</button>
+  <button onclick="devSkip('sorting')" style="display:block; width:100%; margin:2px 0; padding:4px; background:#3a2d5f; color:#fff; border:1px solid #7a5fbf; border-radius:3px; font-size:10px; cursor:pointer;">Sorting 🎩</button>
+  <button onclick="devSkip('rules')" style="display:block; width:100%; margin:2px 0; padding:4px; background:#333; color:#fff; border:1px solid #555; border-radius:3px; font-size:10px; cursor:pointer;">Rules</button>
+  <button onclick="devSkip('map')" style="display:block; width:100%; margin:2px 0; padding:4px; background:#333; color:#fff; border:1px solid #555; border-radius:3px; font-size:10px; cursor:pointer;">Map</button>
+  <button onclick="devSkip('cat')" style="display:block; width:100%; margin:2px 0; padding:4px; background:#333; color:#fff; border:1px solid #555; border-radius:3px; font-size:10px; cursor:pointer;">Cat (24)</button>
+  <button onclick="devSkip('manmo')" style="display:block; width:100%; margin:2px 0; padding:4px; background:#333; color:#fff; border:1px solid #555; border-radius:3px; font-size:10px; cursor:pointer;">Man Mo (1847)</button>
+  <button onclick="devSkip('peak')" style="display:block; width:100%; margin:2px 0; padding:4px; background:#333; color:#fff; border:1px solid #555; border-radius:3px; font-size:10px; cursor:pointer;">Peak (1888)</button>
+  <button onclick="devSkip('clock')" style="display:block; width:100%; margin:2px 0; padding:4px; background:#333; color:#fff; border:1px solid #555; border-radius:3px; font-size:10px; cursor:pointer;">Clock (1915)</button>
+  <button onclick="devSkip('artifact')" style="display:block; width:100%; margin:2px 0; padding:4px; background:#333; color:#fff; border:1px solid #555; border-radius:3px; font-size:10px; cursor:pointer;">Artifact log</button>
+  <button onclick="devSkip('dimsum')" style="display:block; width:100%; margin:2px 0; padding:4px; background:#5a1e1e; color:#fff; border:1px solid #c92a2a; border-radius:3px; font-size:10px; cursor:pointer;">Dim Sum 🥟</button>
+  <button onclick="devSkip('countdown')" style="display:block; width:100%; margin:2px 0; padding:4px; background:#333; color:#fff; border:1px solid #555; border-radius:3px; font-size:10px; cursor:pointer;">Countdown</button>
+  <button onclick="devSkip('battle')" style="display:block; width:100%; margin:2px 0; padding:4px; background:#c92a2a; color:#fff; border:1px solid #ff5252; border-radius:3px; font-size:10px; cursor:pointer; font-weight:bold;">BATTLE (full arsenal)</button>
+  <button onclick="devSkip('victory')" style="display:block; width:100%; margin:2px 0; padding:4px; background:#2d6a4f; color:#fff; border:1px solid #6ee87c; border-radius:3px; font-size:10px; cursor:pointer; font-weight:bold;">Victory</button>
+  <button onclick="document.getElementById('devPanel').style.display='none'" style="display:block; width:100%; margin:4px 0 0; padding:3px; background:#555; color:#fff; border:none; border-radius:3px; font-size:9px; cursor:pointer;">hide</button>
+</div>
+<!-- ====== END DEV SKIP PANEL ====== -->
+
+<!-- DOBBY (persistent on rules + later scenes) -->
+<div class="dobby-corner" id="dobbyCorner" style="display:none;">
+  <img class="dobby-sprite" src="assets/image_10.png" alt="Dobby">
+  <div class="dobby-bubble" id="dobbyBubble" onclick="dobbyTap()">
+    <strong>Dobby</strong> is happy to guide Master Miko! Tap when ready.
+    <div style="margin-top:6px;">
+      <button class="letter-audio-btn" id="dobbyGreetingAudioBtn" onclick="event.stopPropagation(); toggleDobbyGreetingAudio()" aria-label="Play Dobby" style="padding:6px 12px; font-size:10px;">
+        <span class="letter-audio-icon">▶</span>
+        <span class="letter-audio-label">HEAR DOBBY</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // --- SCENE TRANSITIONS + HISTORY ---
+  const sceneHistory = ['scene-cold'];
+  function show(sceneId) {
+    // Stop any Dumbledore audio when scene changes
+    if (typeof stopDDAudio === 'function') stopDDAudio();
+    // If leaving battle scene, fade out music + kill SFX
+    if (sceneId !== 'scene-battle' && _battleMusicEl && !_battleMusicEl.paused) {
+      stopBattleMusic(true);
+      if (typeof stopAllSfx === 'function') stopAllSfx();
+    }
+    // Opening music plays on cold + letter scenes; fades out when leaving those
+    if (sceneId === 'scene-cold' || sceneId === 'scene-letter') {
+      startOpeningMusic();
+    } else if (_openingMusicEl && !_openingMusicEl.paused) {
+      stopOpeningMusic(true);
+    }
+    // Scene-specific background music
+    const sceneKey = _sceneMusicKey(sceneId);
+    if (sceneKey) playSceneMusic(sceneKey); else fadeOutSceneMusic();
+    document.querySelectorAll('.scene').forEach(s => {
+      if (s.id === sceneId) {
+        s.classList.add('visible');
+        s.style.display = 'flex';
+      } else {
+        s.classList.remove('visible');
+        s.style.display = 'none';
+      }
+    });
+    if (sceneHistory[sceneHistory.length - 1] !== sceneId) sceneHistory.push(sceneId);
+    updateDobby(sceneId);
+    window.scrollTo(0, 0);
+    if (typeof saveProgress === 'function') saveProgress(sceneId);
+  }
+  function goBack() {
+    if (sceneHistory.length <= 1) return;
+    sceneHistory.pop();
+    const prev = sceneHistory[sceneHistory.length - 1];
+    document.querySelectorAll('.scene').forEach(s => {
+      if (s.id === prev) {
+        s.classList.add('visible');
+        s.style.display = 'flex';
+      } else {
+        s.classList.remove('visible');
+        s.style.display = 'none';
+      }
+    });
+    updateDobby(prev);
+    window.scrollTo(0, 0);
+  }
+  function updateDobby(sceneId) {
+    const d = document.getElementById('dobbyCorner');
+    if (!d) return;
+    // Show Dobby on rules + stop scenes
+    if (sceneId === 'scene-rules' || sceneId === 'scene-stop') {
+      d.style.display = 'flex';
+    } else {
+      d.style.display = 'none';
+    }
+  }
+
+  // Scene 1 → 2
+  function startCold() {
+    setTimeout(() => document.getElementById('inkName').classList.add('writing'), 800);
+    setTimeout(() => document.getElementById('subText').classList.add('show'), 3200);
+  }
+  function goToLetter() {
+    show('scene-letter');
+    letterPage(1);
+  }
+
+  // Scene 2 touch reveal
+  function touchLetter(active) {
+    const p = document.getElementById('parchment');
+    if (active) p.classList.add('touching');
+    else p.classList.remove('touching');
+  }
+
+  // Keepsake link copy
+  function copyQuestLink() {
+    const url = window.location.href;
+    const btn = document.getElementById('keepsakeBtn');
+    const lbl = document.getElementById('keepsakeLabel');
+    const done = () => {
+      btn.classList.add('copied');
+      lbl.textContent = 'COPIED — PASTE IN YOUR NOTES';
+      setTimeout(() => {
+        btn.classList.remove('copied');
+        lbl.textContent = 'COPY THE MEMORY LINK';
+      }, 4000);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(done).catch(() => {
+        // fallback
+        const ta = document.createElement('textarea');
+        ta.value = url; document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); done(); } catch(e) { lbl.textContent = url; }
+        document.body.removeChild(ta);
+      });
+    } else {
+      const ta = document.createElement('textarea');
+      ta.value = url; document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); done(); } catch(e) { lbl.textContent = url; }
+      document.body.removeChild(ta);
+    }
+  }
+
+  // --- SORTING CEREMONY ---
+  const SORTING_IMGS = {"miko_plain": "assets/miko_plain.jpg", "miko_hat": "assets/miko_hat.jpg", "miko_sorted": "assets/miko_sorted.jpg", "michael_plain": "assets/michael_plain.jpg", "michael_hat": "assets/michael_hat.jpg", "michael_sorted": "assets/michael_sorted.jpg", "andrea_plain": "assets/andrea_plain.jpg", "andrea_hat": "assets/andrea_hat.jpg", "andrea_sorted": "assets/andrea_sorted.jpg"};
+
+  const SORTING_DATA = {
+    miko: {
+      mutter: 'Hmm... such courage in one so young... daring... yes, daring beyond his years...',
+      house: 'gryf',
+      verdict: 'Difficult, very difficult... GRYFFINDOR!'
+    },
+    michael: {
+      mutter: 'Ahh, a sharp mind... resourceful, ambitious... cunning above all else...',
+      house: 'slyt',
+      verdict: 'Oh yes, you could be great... SLYTHERIN!'
+    },
+    andrea: {
+      mutter: 'True of heart... patient as the harvest... loyal beyond doubt...',
+      house: 'huff',
+      verdict: 'A just one, this... HUFFLEPUFF!'
+    }
+  };
+
+  function openSorting() {
+    // Reset
+    ['miko', 'michael', 'andrea'].forEach(p => {
+      const slot = document.querySelector('.sort-slot[data-person="' + p + '"]');
+      slot.classList.remove('house-gryf', 'house-slyt', 'house-huff');
+      const cap = p.charAt(0).toUpperCase() + p.slice(1);
+      document.getElementById('sortPhoto' + cap).src = SORTING_IMGS[p + '_plain'];
+      const m = document.getElementById('sortMutter' + cap);
+      m.textContent = '';
+      m.classList.remove('showing');
+      const h = document.getElementById('sortHouse' + cap);
+      h.textContent = '';
+      h.className = 'sort-house';
+    });
+    document.getElementById('sortingSpeech').innerHTML =
+      'One thing more, Miko Takeshi. The dark one\'s magic is older than any one of you alone — and to stand against him tonight, you will need the strength of the founders themselves. <br/><br/>The Sorting Hat has been sent ahead. Place it on each of you in turn. The houses will choose who you are, just for tonight.';
+    // Reuse Dumbledore portrait already embedded in cold/letter scene
+    const existing = document.querySelector('.dumbledore-portrait, .dd-avatar, .dd-big-portrait');
+    if (existing && existing.src) {
+      document.getElementById('sortingDdPortrait').src = existing.src;
+    }
+    document.getElementById('sortHatBtn').style.display = '';
+    document.getElementById('sortRevealBtn').style.display = 'none';
+    document.getElementById('sortContinueBtn').style.display = 'none';
+    show('scene-sorting');
+  }
+
+  function placeSortingHat() {
+    document.getElementById('sortHatBtn').style.display = 'none';
+    ['miko', 'michael', 'andrea'].forEach((p, idx) => {
+      const cap = p.charAt(0).toUpperCase() + p.slice(1);
+      const img = document.getElementById('sortPhoto' + cap);
+      img.classList.add('swapping');
+      setTimeout(() => {
+        img.src = SORTING_IMGS[p + '_hat'];
+        img.classList.remove('swapping');
+      }, 380 + idx * 150);
+      // After hat lands, reveal mutter
+      setTimeout(() => {
+        const m = document.getElementById('sortMutter' + cap);
+        m.textContent = SORTING_DATA[p].mutter;
+        m.classList.add('showing');
+      }, 950 + idx * 220);
+    });
+    setTimeout(() => {
+      document.getElementById('sortRevealBtn').style.display = '';
+    }, 2200);
+  }
+
+  function revealHouses() {
+    document.getElementById('sortRevealBtn').style.display = 'none';
+    ['miko', 'michael', 'andrea'].forEach((p, idx) => {
+      const cap = p.charAt(0).toUpperCase() + p.slice(1);
+      const delay = idx * 1400;
+      setTimeout(() => {
+        const img = document.getElementById('sortPhoto' + cap);
+        const slot = document.querySelector('.sort-slot[data-person="' + p + '"]');
+        const m = document.getElementById('sortMutter' + cap);
+        const h = document.getElementById('sortHouse' + cap);
+        const data = SORTING_DATA[p];
+        // Drama beat: change mutter to verdict first
+        m.textContent = data.verdict;
+        // Then swap photo
+        img.classList.add('swapping');
+        setTimeout(() => {
+          img.src = SORTING_IMGS[p + '_sorted'];
+          img.classList.remove('swapping');
+          slot.classList.add('house-' + data.house);
+          h.textContent = data.house === 'gryf' ? 'GRYFFINDOR' : data.house === 'slyt' ? 'SLYTHERIN' : 'HUFFLEPUFF';
+          h.classList.add(data.house, 'revealed');
+        }, 420);
+      }, delay);
+    });
+    // After all 3 done, show continue
+    setTimeout(() => {
+      document.getElementById('sortContinueBtn').style.display = '';
+      // Persist sorting so artifact log can use house colors
+      localStorage.setItem('quest_sorting_done', '1');
+    }, 4400);
+  }
+
+  function goToRulesFromSorting() {
+    show('scene-rules');
+  }
+
+  // --- DUMBLEDORE AUDIO (all scenes) ---
+  const DD_AUDIO = {"letter1": "assets/letter1.mp3", "letter2": "assets/letter2.mp3", "sorting": "assets/sorting.mp3", "cat": "assets/cat.mp3", "manmo": "assets/manmo.mp3", "peak": "assets/peak.mp3", "clock": "assets/clock.mp3", "victory": "assets/victory.mp3"};
+
+  // Merge in map narrations + Dobby clips
+  Object.assign(DD_AUDIO, {"map_cat": "assets/map_cat.mp3", "map_manmo": "assets/map_manmo.mp3", "map_peak": "assets/map_peak.mp3", "map_clock": "assets/map_clock.mp3", "map_final": "assets/map_final.mp3", "dobby_dim_sum": "assets/dobby_dim_sum.mp3", "dobby_cat_to_manmo": "assets/dobby_cat_to_manmo.mp3", "dobby_manmo_to_peak": "assets/dobby_manmo_to_peak.mp3", "dobby_peak_to_clock": "assets/dobby_peak_to_clock.mp3", "dobby_greeting": "assets/dobby_greeting.mp3"});
+
+  // Stubs to be filled in when MP3s land in Personal/
+  DD_AUDIO.preBattle = 'assets/audio_38.mp3';  // pre-battle DD speech
+  let BATTLE_MUSIC = 'assets/audio_39.mp3';   // battle music (loops during fight)
+  let OPENING_MUSIC = 'assets/audio_40.mp3'; // opening theme (cold + letter scenes)
+  let _openingMusicEl = null;
+
+
+  // --- BATTLE SOUND EFFECTS ---
+  const SFX = {"sword": "assets/sword.mp3", "gun": "assets/gun.mp3", "laugh": "assets/laugh.mp3", "magic": "assets/magic.mp3", "finish": "assets/finish.mp3"};
+  const _sfxPool = {};
+  function playSfx(key, volume) {
+    if (!SFX[key]) return;
+    // Reuse a pool of audio elements per key so rapid taps don't cut each other off
+    if (!_sfxPool[key]) _sfxPool[key] = [];
+    let a = _sfxPool[key].find(x => x.paused || x.ended);
+    if (!a) {
+      a = new Audio(SFX[key]);
+      _sfxPool[key].push(a);
+    } else {
+      a.currentTime = 0;
+    }
+    a.volume = (volume == null) ? 0.7 : volume;
+    a.play().catch(() => {});
+  }
+  function stopAllSfx() {
+    Object.keys(_sfxPool).forEach(k => _sfxPool[k].forEach(a => { try { a.pause(); a.currentTime = 0; } catch(e){} }));
+  }
+
+  // --- SCENE-SPECIFIC BACKGROUND MUSIC ---
+  const SCENE_MUSIC = {"cat": "assets/cat_1.mp3", "manmo": "assets/manmo_1.mp3", "peak": "assets/peak_1.mp3", "clock": "assets/clock_1.mp3", "dimsum": "assets/dimsum.mp3", "artifact": "assets/artifact.mp3", "countdown": "assets/countdown.mp3", "victory": "assets/victory_1.mp3"};
+  // Map scene id (+ CURRENT_STOP for scene-stop) to a music key in SCENE_MUSIC
+  function _sceneMusicKey(sceneId) {
+    if (sceneId === 'scene-stop') {
+      if (CURRENT_STOP === 'cat')   return 'cat';
+      if (CURRENT_STOP === 'manmo') return 'manmo';
+      if (CURRENT_STOP === 'peak')  return 'peak';
+      if (CURRENT_STOP === 'clock') return 'clock';
+    }
+    if (sceneId === 'scene-dimsum')    return 'dimsum';
+    if (sceneId === 'scene-artifact')  return 'artifact';
+    if (sceneId === 'scene-countdown') return 'countdown';
+    if (sceneId === 'scene-victory')   return 'victory';
+    return null;
+  }
+  let _sceneMusicEl = null;
+  let _sceneMusicCurrentKey = null;
+  function _sceneAudioEl() {
+    if (!_sceneMusicEl) {
+      _sceneMusicEl = document.createElement('audio');
+      _sceneMusicEl.id = 'sceneMusic';
+      _sceneMusicEl.loop = true;
+      _sceneMusicEl.volume = 0;
+      document.body.appendChild(_sceneMusicEl);
+    }
+    return _sceneMusicEl;
+  }
+  function playSceneMusic(key) {
+    if (!key || !SCENE_MUSIC[key]) { fadeOutSceneMusic(); return; }
+    if (_sceneMusicCurrentKey === key && _sceneMusicEl && !_sceneMusicEl.paused) return; // already playing
+    const a = _sceneAudioEl();
+    a.pause();
+    _sceneMusicCurrentKey = key;
+    a.src = SCENE_MUSIC[key];
+    a.currentTime = 0;
+    a.play().then(() => {
+      const targetVol = (key === 'victory') ? 0.38 : (key === 'countdown' ? 0.42 : 0.35);
+      const step = targetVol / 22;
+      let v = 0;
+      a.volume = 0;
+      const fade = setInterval(() => {
+        v += step;
+        if (v >= targetVol) { v = targetVol; clearInterval(fade); }
+        a.volume = v;
+      }, 80);
+    }).catch(err => console.warn('Scene music play failed:', err));
+  }
+  function fadeOutSceneMusic() {
+    if (!_sceneMusicEl || _sceneMusicEl.paused) { _sceneMusicCurrentKey = null; return; }
+    _sceneMusicCurrentKey = null;
+    const a = _sceneMusicEl;
+    const step = (a.volume || 0.35) / 18;
+    const interval = setInterval(() => {
+      if (a.volume <= step) { a.volume = 0; a.pause(); clearInterval(interval); }
+      else a.volume -= step;
+    }, 70);
+  }
+
+  // Map of scene "key" → audio key. CURRENT_STOP drives stop congrats.
+  function _ddAudioKey(scene) {
+    if (scene === 'letter1' || scene === 'letter2' || scene === 'sorting' || scene === 'victory' || scene === 'preBattle') return scene;
+    if (scene === 'ddOverlay') {
+      if (CURRENT_STOP === 'cat')   return 'cat';
+      if (CURRENT_STOP === 'manmo') return 'manmo';
+      if (CURRENT_STOP === 'peak')  return 'peak';
+      if (CURRENT_STOP === 'clock') return 'clock';
+    }
+    if (scene === 'mapNarration') {
+      if (NEXT_STOP === 'final' || !NEXT_STOP) return 'map_final';
+      return 'map_' + NEXT_STOP;
+    }
+    if (scene === 'dobbyDimSum')       return 'dobby_dim_sum';
+    if (scene === 'dobbyGreeting')     return 'dobby_greeting';
+    if (scene === 'dobbyOverlay') {
+      if (CURRENT_STOP === 'cat')   return 'dobby_cat_to_manmo';
+      if (CURRENT_STOP === 'manmo') return 'dobby_manmo_to_peak';
+      if (CURRENT_STOP === 'peak')  return 'dobby_peak_to_clock';
+    }
+    return null;
+  }
+
+  // Returns a shared <audio> element (one for the whole app)
+  function _ddSharedAudio() {
+    let a = document.getElementById('ddAudioShared');
+    if (!a) {
+      a = document.createElement('audio');
+      a.id = 'ddAudioShared';
+      a.preload = 'none';
+      document.body.appendChild(a);
+    }
+    return a;
+  }
+
+  // Map of button ID → which scene it belongs to (for resetting between scenes)
+  const _ddBtnIds = ['letterAudioBtn', 'sortingAudioBtn', 'ddOverlayAudioBtn', 'victoryAudioBtn', 'mapNarrationAudioBtn', 'dimsumDobbyAudioBtn', 'dobbyOverlayAudioBtn', 'dobbyGreetingAudioBtn', 'preBattleAudioBtn'];
+
+  function _ddSpeakerFor(btnId) {
+    // Buttons with "obby" or "Dobby" in the ID are for Dobby; rest = Dumbledore
+    return /obby/i.test(btnId) ? 'DOBBY' : 'DUMBLEDORE';
+  }
+
+  function _ddResetBtn(btnId) {
+    const btn = document.getElementById(btnId);
+    if (!btn) return;
+    btn.classList.remove('playing');
+    const icon = btn.querySelector('.letter-audio-icon');
+    const label = btn.querySelector('.letter-audio-label');
+    if (icon) icon.textContent = '▶';
+    if (label) label.textContent = 'HEAR ' + _ddSpeakerFor(btnId);
+  }
+
+  function _ddResetAllBtns() {
+    _ddBtnIds.forEach(_ddResetBtn);
+  }
+
+  function loadLetterAudio(page) {
+    // Stop anything playing
+    const a = _ddSharedAudio();
+    a.pause();
+    a.currentTime = 0;
+    _ddResetAllBtns();
+    // Update letter button visibility
+    const btn = document.getElementById('letterAudioBtn');
+    const key = page === 1 ? 'letter1' : 'letter2';
+    if (btn) btn.style.display = DD_AUDIO[key] ? '' : 'none';
+  }
+
+  // Generic toggle: pass the scene key + button id
+  function _ddToggle(sceneKey, btnId) {
+    const a = _ddSharedAudio();
+    const key = _ddAudioKey(sceneKey);
+    if (!key || !DD_AUDIO[key]) return;
+    const btn = document.getElementById(btnId);
+    const icon = btn.querySelector('.letter-audio-icon');
+    const label = btn.querySelector('.letter-audio-label');
+    const speaker = _ddSpeakerFor(btnId);
+    // If audio is playing this scene, pause it
+    if (!a.paused && a.dataset.activeKey === key) {
+      a.pause();
+      btn.classList.remove('playing');
+      icon.textContent = '▶';
+      label.textContent = 'HEAR ' + speaker;
+      duckOpeningMusic(false);
+      return;
+    }
+    // Otherwise reset all buttons, swap src, and play
+    _ddResetAllBtns();
+    a.src = DD_AUDIO[key];
+    a.dataset.activeKey = key;
+    a.currentTime = 0;
+    duckOpeningMusic(true);
+    a.play().then(() => {
+      btn.classList.add('playing');
+      icon.textContent = '⏸';
+      label.textContent = speaker + ' SPEAKS…';
+    }).catch(err => {
+      console.warn('Audio play failed:', err);
+      label.textContent = 'TAP AGAIN';
+    });
+    // Reset button on end + restore opening music volume
+    a.onended = () => {
+      btn.classList.remove('playing');
+      icon.textContent = '▶';
+      label.textContent = 'PLAY AGAIN';
+      duckOpeningMusic(false);
+    };
+  }
+
+
+  function toggleMapNarrationAudio()  { _ddToggle('mapNarration',  'mapNarrationAudioBtn'); }
+  function toggleDimsumDobbyAudio()   { _ddToggle('dobbyDimSum',   'dimsumDobbyAudioBtn'); }
+  function toggleDobbyOverlayAudio()  { _ddToggle('dobbyOverlay',  'dobbyOverlayAudioBtn'); }
+  function toggleDobbyGreetingAudio() { _ddToggle('dobbyGreeting', 'dobbyGreetingAudioBtn'); }
+
+
+  function togglePreBattleAudio()    { _ddToggle('preBattle',    'preBattleAudioBtn'); }
+
+  function openPreBattle() {
+    // Show overlay with Dumbledore portrait
+    const portrait = document.querySelector('.dumbledore-portrait, .dd-avatar, .dd-big-portrait, .sorting-dd-portrait');
+    if (portrait && portrait.src) document.getElementById('preBattlePortrait').src = portrait.src;
+    // Hide audio button if no audio yet
+    const audioBtn = document.getElementById('preBattleAudioBtn');
+    if (audioBtn) audioBtn.style.display = DD_AUDIO.preBattle ? '' : 'none';
+    document.getElementById('preBattleOverlay').classList.add('show');
+  }
+  function closePreBattle() {
+    // Stop any DD audio that was playing
+    const a = document.getElementById('ddAudioShared');
+    if (a) a.pause();
+    _ddResetAllBtns();
+    document.getElementById('preBattleOverlay').classList.remove('show');
+    startBattle();
+  }
+
+  // --- BATTLE BACKGROUND MUSIC ---
+  let _battleMusicEl = null;
+  function startBattleMusic() {
+    if (!BATTLE_MUSIC) return;
+    if (!_battleMusicEl) {
+      _battleMusicEl = document.createElement('audio');
+      _battleMusicEl.id = 'battleMusic';
+      _battleMusicEl.loop = true;
+      _battleMusicEl.volume = 0;
+      document.body.appendChild(_battleMusicEl);
+    }
+    _battleMusicEl.src = BATTLE_MUSIC;
+    _battleMusicEl.currentTime = 0;
+    _battleMusicEl.play().then(() => {
+      // Fade in over 2 seconds
+      const targetVol = 0.45;
+      const step = targetVol / 20;
+      let v = 0;
+      const fade = setInterval(() => {
+        v += step;
+        if (v >= targetVol) { v = targetVol; clearInterval(fade); }
+        _battleMusicEl.volume = v;
+      }, 100);
+    }).catch(err => console.warn('Battle music play failed:', err));
+  }
+  // --- OPENING MUSIC (cold scene + letter scene) ---
+  function startOpeningMusic() {
+    if (!OPENING_MUSIC) return;
+    if (!_openingMusicEl) {
+      _openingMusicEl = document.createElement('audio');
+      _openingMusicEl.id = 'openingMusic';
+      _openingMusicEl.loop = true;
+      _openingMusicEl.volume = 0;
+      document.body.appendChild(_openingMusicEl);
+    }
+    if (!_openingMusicEl.paused) return;  // already playing
+    _openingMusicEl.src = OPENING_MUSIC;
+    _openingMusicEl.play().then(() => {
+      const targetVol = 0.32;
+      const step = targetVol / 25;
+      let v = _openingMusicEl.volume;
+      const fade = setInterval(() => {
+        v += step;
+        if (v >= targetVol) { v = targetVol; clearInterval(fade); }
+        _openingMusicEl.volume = v;
+      }, 80);
+    }).catch(err => console.warn('Opening music play failed:', err));
+  }
+  function stopOpeningMusic(fade) {
+    if (!_openingMusicEl) return;
+    if (!fade) { _openingMusicEl.pause(); _openingMusicEl.volume = 0; return; }
+    const step = (_openingMusicEl.volume || 0.32) / 18;
+    const interval = setInterval(() => {
+      if (_openingMusicEl.volume <= step) {
+        _openingMusicEl.volume = 0;
+        _openingMusicEl.pause();
+        clearInterval(interval);
+      } else {
+        _openingMusicEl.volume -= step;
+      }
+    }, 80);
+  }
+  function duckOpeningMusic(low) {
+    // Lower (or raise) ALL background music volume so DD/Dobby voice plays clearly on top
+    if (_openingMusicEl && !_openingMusicEl.paused) {
+      _openingMusicEl.volume = low ? 0.08 : 0.32;
+    }
+    if (typeof _sceneMusicEl !== 'undefined' && _sceneMusicEl && !_sceneMusicEl.paused) {
+      _sceneMusicEl.volume = low ? 0.08 : 0.35;
+    }
+  }
+
+  function stopBattleMusic(fade) {
+    if (!_battleMusicEl) return;
+    if (!fade) { _battleMusicEl.pause(); _battleMusicEl.volume = 0; return; }
+    const startVol = _battleMusicEl.volume;
+    const step = startVol / 20;
+    const interval = setInterval(() => {
+      if (_battleMusicEl.volume <= step) { _battleMusicEl.volume = 0; _battleMusicEl.pause(); clearInterval(interval); }
+      else _battleMusicEl.volume -= step;
+    }, 80);
+  }
+
+  function toggleLetterAudio()   { _ddToggle(currentLetterPage(), 'letterAudioBtn'); }
+  function toggleSortingAudio()  { _ddToggle('sorting',           'sortingAudioBtn'); }
+  function toggleDDOverlayAudio(){ _ddToggle('ddOverlay',         'ddOverlayAudioBtn'); }
+  function toggleVictoryAudio()  { _ddToggle('victory',           'victoryAudioBtn'); }
+
+  function currentLetterPage() {
+    // Page indicator reads e.g. "1 / 2" or "2 / 2" — use the FIRST digit only.
+    const ind = document.getElementById('letterPageIndicator');
+    if (ind && ind.textContent.trim().startsWith('2')) return 'letter2';
+    return 'letter1';
+  }
+
+  // Stop all DD audio whenever the scene changes (via show())
+  function stopDDAudio() {
+    const a = document.getElementById('ddAudioShared');
+    if (a) a.pause();
+    _ddResetAllBtns();
+    duckOpeningMusic(false);
+  }
+
+  // Scene 2 letter pagination
+  function letterPage(n) {
+    document.querySelectorAll('.letter-page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.letter-page-' + n).forEach(p => p.classList.add('active'));
+    loadLetterAudio(n);
+    document.getElementById('letterPageIndicator').textContent = n + ' / 2';
+    document.getElementById('letterPrevBtn').disabled = (n === 1);
+    document.getElementById('letterNextBtn').style.display = (n === 1) ? 'inline-block' : 'none';
+    document.getElementById('letterContinueBtn').style.display = (n === 2) ? 'inline-block' : 'none';
+    const p = document.getElementById('parchment');
+    if (p) p.scrollTop = 0;
+  }
+
+  // Scene 2 → 3
+  function goToRules() {
+    // Clear any letter touching/state
+    const p = document.getElementById('parchment');
+    if (p) p.classList.remove('touching');
+    show('scene-rules');
+    // Defensive: ensure rules-parchment is visible (in case any leftover state)
+    setTimeout(() => {
+      const rp = document.querySelector('#scene-rules .rules-parchment');
+      if (rp) {
+        rp.style.display = 'block';
+        rp.style.opacity = '1';
+        rp.style.visibility = 'visible';
+      }
+    }, 50);
+  }
+
+  // Dobby tap
+  function dobbyTap() {
+    const bubble = document.getElementById('dobbyBubble');
+    const messages = [
+      "<strong>Dobby</strong> says: read the three laws carefully, Master Miko!",
+      "<strong>Dobby</strong> whispers: scroll down for all three laws!",
+      "<strong>Dobby</strong> twitches his ears: when ready, tap 'I AM READY'!",
+      "<strong>Dobby</strong> is here to help! Tap me again if Master needs reminders.",
+    ];
+    bubble.innerHTML = messages[Math.floor(Math.random() * messages.length)];
+  }
+
+  // Scene 3 → 4 (Map)
+  function goToMap() {
+    show('scene-map');
+  
+    updateMapNarration();
+  }
+  function goBackToMap() {
+    show('scene-map');
+  
+    updateMapNarration();
+  }
+
+  // --- STOP DATA ---
+  const STOPS = {
+    cat: {
+      tag: 'THE FIRST SACRED PLACE',
+      title: 'Cat Street',
+      image: 'assets/image_54.jpg',
+      mapNarration: "Your first destination calls to you from the southern shore — Sheung Wan's Cat Street, where the merchants once hid more than antiques in the lanes. Tap the glowing mark.",
+      cn: '摩羅上街  ·  Sheung Wan',
+      lore: 'Long ago, when the British wizards first came to this city, sailors from across the sea brought their <span class="accent">forbidden goods</span> here to trade in shadow. They called the buyers "cats" - for they moved through alleys, took what was not theirs, and were never seen leaving. Today the stalls still stand, lined with jade and old bronze. Among them is something the dark one would burn the lane to find. <span class="accent">Get to it before he does.</span>',
+      riddle: 'Walk to the heart of the lane where the antique stalls cluster thickest. Above the doorway of the central building, two digits mark the seal. Speak them.',
+      password: '24',
+      ddCongrats: "Well done, Miko Takeshi. The first seal yields — the cats of Sheung Wan kept their number for you alone. Far below the harbor, Harry stirred. He felt it. Now: each of the three of you must take what calls from these stalls. A stone. A coin. A bone trinket. Hold it. Name its power aloud. These are no muggle trinkets — these are the weapons that will arm you when the eighth hour comes.",
+      dobbyDirections: 'Master Miko! Dobby is so pleased! Now Master must cross Hollywood Road — just up the stone stairs at the east end of the lane! The temple of the dragon-painted roof is waiting right there! It is 50 paces, no more! Hurry, Master!',
+      next: 'manmo'
+    },
+    manmo: {
+      tag: 'THE SECOND SACRED PLACE',
+      title: 'Man Mo Temple',
+      image: 'assets/image_55.jpg',
+      mapNarration: "The second gate waits just up the stone stairs of Hollywood Road — the temple of letters and war, with its dragon-painted roof. Tap the new mark, Miko.",
+      cn: '文武廟  ·  Hollywood Road',
+      lore: 'Across the street, the gods of <span class="accent">letters and war</span> watch over Hollywood Road. Their hall was raised by wealthy merchants when this city was still young — wizards who knew the dark one would one day return. They left the year of their gathering at the threshold for any heir who could read it.',
+      riddle: 'You stand at the gate of the gods of letters and war. They have watched over this lane since their hall was first raised. The year of their gathering is carved at the threshold. Four digits. Speak them.',
+      password: '1847',
+      ddCongrats: "The gods of letters and war have opened their hall to you, Miko Takeshi. The year 1847 was no accident — those merchants were wizards in hiding, and they raised this temple for a night exactly like tonight. As you spoke the year aloud, somewhere beneath the harbor, Hermione's chains loosened by a single link. She knows you are coming. Your three weapons have also been blessed in this place — a second charge sings in each of them now. But there is one more thing the gods of war taught their warriors: never fight on an empty stomach. Dobby has already arranged it. Take a taxi to Maxim's Palace at City Hall — eat well, Miko Takeshi. Every dish at this table is old kitchen-magic, and you will need it before the eighth hour.",
+      dobbyDirections: 'Master, the meal has strengthened you well! Now take another taxi — to the Peak Tram lower terminus at 33 Garden Road! Say "Peak Tram lower terminus, Garden Road"! The cable carriage will lift Master to the highest seat in Hong Kong! Hurry, Master, the eighth hour grows near!',
+      next: 'peak'
+    },
+    peak: {
+      tag: 'THE THIRD SACRED PLACE',
+      title: 'Sky Terrace 428',
+      image: 'assets/image_56.jpg',
+      mapNarration: "The next gate is not in the streets but above them. The Peak Tram waits at 33 Garden Road — it will lift you to the highest seat in Hong Kong. Tap the mark on the mountain.",
+      cn: '凌霄閣 428  ·  The Peak',
+      lore: 'The wizards built a <span class="accent">cable funicular</span> to climb the mountain. The first to ride it surveyed the harbor for marks of the dark one\'s incursion. Their year of founding is named on every stone of the station. Find it.',
+      riddle: 'The funicular has carried wizards up this mountain since the year of its founding. Every sign in the station declares it. Four digits — the year the cable first ran. Speak them.',
+      password: '1888',
+      ddCongrats: "Higher than any wizard has stood in this city in a hundred years, Miko Takeshi. From Sky Terrace 428 the whole of Hong Kong lies bare — every shadow the dark one tries to hide. The funicular has carried us up this mountain since 1888, and tonight it carried you. Ron is awake now. He hears the wind on the Peak and he is laughing — he always loved high places. The wind itself has just bound to your weapons. A third charge sings in them now. One gate remains.",
+      dobbyDirections: 'Master is almost there! Dobby is shaking with excitement! Take the Peak Tram down — back to the city! Then walk to the Star Ferry pier — the green-and-white boats — and cross the great harbor to Tsim Sha Tsui! The old clock tower waits right at the water\'s edge in Kowloon, the final gate! Time grows short, Master!',
+      next: 'clock'
+    },
+    clock: {
+      tag: 'THE FOURTH AND FINAL GATE',
+      title: 'Clock Tower',
+      image: 'assets/image_57.jpg',
+      mapNarration: "Cross the harbor, Miko. The Star Ferry waits at the pier. The Clock Tower of Tsim Sha Tsui stands alone at the water's edge — the final gate. Tap the mark across the water. The eighth hour is near.",
+      cn: '鐘樓  ·  Tsim Sha Tsui',
+      lore: 'The harbor\'s old station was destroyed long ago, but the wizards saved its <span class="accent">tower</span>. It still keeps time over the water. The plaque at its base names the year of its raising. Find it now — the eighth hour approaches.',
+      riddle: 'The last tower of the old station has stood since the year of its raising. The plaque at its base names that year. Four digits. Speak them.',
+      password: '1915',
+      ddCongrats: "The final gate is open, Miko Takeshi. The Clock Tower of Tsim Sha Tsui was raised in 1915 by wizards who knew this night would come — and they aimed its hands at this very hour. Harry, Ron, and Hermione are listening now. They feel every seal you have broken tonight. Look upon the map: the dark one's mark has risen over Victoria Harbour. Walk to it. The lights are about to dance, and he is at his weakest in their dancing. End him before the eighth hour rings across the water.",
+      next: null
+    }
+  };
+
+  let CURRENT_STOP = null;
+  let NEXT_STOP = 'cat'; // The stop the map should narrate to; updated as each is completed
+
+  // --- PROGRESS PERSISTENCE ---
+  // Save current scene + progress flags so a phone reload restores the user where they left off.
+  const _PROGRESS_KEY = 'quest_progress_v1';
+  function saveProgress(sceneId) {
+    try {
+      const data = {
+        scene: sceneId || (document.querySelector('.scene.visible') || {}).id,
+        currentStop: CURRENT_STOP,
+        nextStop: NEXT_STOP,
+        sortingDone: localStorage.getItem('quest_sorting_done') === '1',
+        ts: Date.now()
+      };
+      localStorage.setItem(_PROGRESS_KEY, JSON.stringify(data));
+    } catch (e) { /* localStorage may be full or disabled */ }
+  }
+  function restoreProgress() {
+    try {
+      const raw = localStorage.getItem(_PROGRESS_KEY);
+      if (!raw) return false;
+      const data = JSON.parse(raw);
+      // Don't restore if last save was over 18 hours ago — quest is one-day
+      if (Date.now() - (data.ts || 0) > 18 * 60 * 60 * 1000) {
+        localStorage.removeItem(_PROGRESS_KEY);
+        return false;
+      }
+      if (data.currentStop) CURRENT_STOP = data.currentStop;
+      if (data.nextStop)    NEXT_STOP    = data.nextStop;
+      // Restore pin states based on which stops have been completed
+      const order = ['cat', 'manmo', 'peak', 'clock'];
+      let lastDone = null;
+      if (NEXT_STOP && NEXT_STOP !== 'cat' && NEXT_STOP !== 'final') {
+        const idx = order.indexOf(NEXT_STOP);
+        if (idx > 0) {
+          for (let i = 0; i < idx; i++) {
+            const pin = document.querySelector('.map-pin[data-stop="' + order[i] + '"]');
+            if (pin) { pin.classList.remove('active', 'locked'); pin.classList.add('done'); }
+            lastDone = order[i];
+          }
+          const cur = document.querySelector('.map-pin[data-stop="' + NEXT_STOP + '"]');
+          if (cur) { cur.classList.remove('locked'); cur.classList.add('active'); cur.onclick = () => openStop(NEXT_STOP); }
+        }
+      } else if (NEXT_STOP === 'final') {
+        order.forEach(s => {
+          const pin = document.querySelector('.map-pin[data-stop="' + s + '"]');
+          if (pin) { pin.classList.remove('active','locked'); pin.classList.add('done'); }
+        });
+        lastDone = 'clock';
+      }
+      // Move Miko marker to the last completed stop (where he physically is)
+      if (lastDone) {
+        const lastPin = document.querySelector('.map-pin[data-stop="' + lastDone + '"]');
+        const marker = document.getElementById('mikoMarker');
+        if (lastPin && marker) {
+          marker.style.left = lastPin.style.left;
+          marker.style.top = lastPin.style.top;
+          marker.classList.remove('at-start');
+        }
+      }
+      // Jump to last scene if it's not the cold open
+      if (data.scene && data.scene !== 'scene-cold') {
+        // Don't auto-restore battle or victory — let them re-trigger naturally
+        const safe = ['scene-letter','scene-sorting','scene-rules','scene-map','scene-stop','scene-dimsum','scene-artifact','scene-countdown'];
+        if (safe.indexOf(data.scene) !== -1) {
+          // Friendly labels for the resume overlay
+          const labels = {
+            'scene-letter':    "Dumbledore's letter awaits",
+            'scene-sorting':   'The Sorting Hat is ready',
+            'scene-rules':     'The Laws of the Quest',
+            'scene-map':       'Hong Kong is calling',
+            'scene-stop':      'A sacred place stands open',
+            'scene-dimsum':    "Dobby has saved your table",
+            'scene-artifact':  'Your weapons await naming',
+            'scene-countdown': 'The eighth hour approaches'
+          };
+          const t = document.getElementById('resumeTitle');
+          if (t && labels[data.scene]) t.textContent = labels[data.scene];
+          const ov = document.getElementById('resumeOverlay');
+          if (ov) ov.style.display = 'flex';
+          // Store the pending scene to jump to once user taps
+          window._pendingRestoreScene = data.scene;
+          return true;
+        }
+      }
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+  function dismissResumeOverlay() {
+    const ov = document.getElementById('resumeOverlay');
+    if (!ov) return;
+    ov.style.transition = 'opacity 0.4s ease';
+    ov.style.opacity = '0';
+    setTimeout(() => {
+      ov.style.display = 'none';
+      ov.style.opacity = '';
+      ov.style.transition = '';
+      // Now actually jump to the restored scene — this user-tap unlocks audio
+      const target = window._pendingRestoreScene;
+      if (target) {
+        show(target);
+        if (target === 'scene-letter') letterPage(1);
+        delete window._pendingRestoreScene;
+      }
+    }, 400);
+  }
+
+  // Wipe progress (used internally on victory or by future reset button)
+  function resetProgress() {
+    try {
+      localStorage.removeItem(_PROGRESS_KEY);
+      localStorage.removeItem('quest_arsenal');
+      localStorage.removeItem('quest_dimsum_hp');
+      localStorage.removeItem('quest_sorting_done');
+    } catch (e) {}
+  }
+  // Save automatically on page hide / unload
+  window.addEventListener('pagehide', () => saveProgress());
+  document.addEventListener('visibilitychange', () => { if (document.hidden) saveProgress(); });
+  // Restore once DOM is ready
+  document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => restoreProgress(), 100);
+  });
+  const FINAL_NARRATION = "Look — the dark one's mark has risen over Victoria Harbour. The lights are beginning to dance. Walk to the water, Miko Takeshi. He is waiting for you.";
+
+  function updateMapNarration() {
+    const txt = document.getElementById('mapNarrationText');
+    if (!txt) return;
+    if (NEXT_STOP === 'final' || !NEXT_STOP) {
+      txt.textContent = FINAL_NARRATION;
+      return;
+    }
+    if (STOPS[NEXT_STOP] && STOPS[NEXT_STOP].mapNarration) {
+      txt.textContent = STOPS[NEXT_STOP].mapNarration;
+      return;
+    }
+    txt.textContent = FINAL_NARRATION;
+  }
+
+  function openStop(stopId) {
+    CURRENT_STOP = stopId;
+    const s = STOPS[stopId];
+    if (!s) return;
+    document.getElementById('stopCardTag').textContent = s.tag;
+    document.getElementById('stopCardTitle').textContent = s.title;
+    document.getElementById('stopCardCn').textContent = s.cn;
+    // Stop image — hide wrap if no URL or image fails to load
+    const wrap = document.getElementById('stopImgWrap');
+    const img = document.getElementById('stopCardImg');
+    if (s.image) {
+      wrap.style.display = 'block';
+      img.onerror = () => { wrap.style.display = 'none'; };
+      img.onload = () => { wrap.style.display = 'block'; };
+      img.alt = s.title;
+      img.src = s.image;
+    } else {
+      wrap.style.display = 'none';
+    }
+    document.getElementById('stopCardLore').innerHTML = s.lore;
+    document.getElementById('stopCardRiddle').textContent = s.riddle;
+    document.getElementById('passwordInput').value = '';
+    document.getElementById('passwordFeedback').textContent = '';
+    document.getElementById('stopSubmitBtn').onclick = () => checkPassword(stopId);
+    show('scene-stop');
+  }
+
+  function checkPassword(stopId) {
+    const s = STOPS[stopId];
+    const inp = document.getElementById('passwordInput');
+    const fb = document.getElementById('passwordFeedback');
+    const val = (inp.value || '').trim().toUpperCase();
+    if (val === s.password.toUpperCase()) {
+      fb.textContent = 'The seal yields...';
+      fb.className = 'password-feedback right';
+      setTimeout(() => {
+        showDDOverlay(s.ddCongrats);
+      }, 900);
+    } else {
+      fb.textContent = 'The wind carries no echo. Try again.';
+      fb.className = 'password-feedback wrong';
+      inp.value = '';
+      inp.focus();
+    }
+  }
+
+  // --- DUMBLEDORE OVERLAY ---
+  function showDDOverlay(speech) {
+    document.getElementById('ddSpeech').textContent = speech;
+    // Use the same Dumbledore portrait already embedded
+    const existingPortrait = document.querySelector('.dumbledore-portrait, .dd-avatar');
+    if (existingPortrait) {
+      document.getElementById('ddBigPortrait').src = existingPortrait.src;
+    }
+    document.getElementById('ddOverlay').classList.add('show');
+  }
+  function closeDDOverlay() {
+    document.getElementById('ddOverlay').classList.remove('show');
+    // Clock Tower → straight to countdown/battle prep
+    if (CURRENT_STOP === 'clock') {
+      showCountdown();
+      return;
+    }
+    // Man Mo → dim sum interlude at Maxim's Palace
+    if (CURRENT_STOP === 'manmo') {
+      openDimSum();
+      return;
+    }
+    // Peak → straight to Dobby directions & map (no artifact collection)
+    if (CURRENT_STOP === 'peak') {
+      finishStop();
+      return;
+    }
+    // Cat Street → artifact log (the ONLY shopping stop)
+    document.getElementById('artifactStopTitle').textContent = STOPS[CURRENT_STOP].title;
+    // Reset slots
+    ['miko', 'michael', 'andrea'].forEach(p => {
+      document.getElementById(p + 'Item').value = '';
+      document.getElementById(p + 'Power').value = '';
+      document.getElementById(p + 'Dmg').style.display = 'none';
+      const submit = document.querySelector(`.artifact-slot[data-person="${p}"] .artifact-submit`);
+      if (submit) {
+        submit.disabled = false;
+        submit.style.display = 'block';
+        submit.textContent = 'LOCK IT IN';
+      }
+    });
+    document.getElementById('artifactContinue').disabled = true;
+    show('scene-artifact');
+  }
+
+  // --- ARTIFACT LOG ---
+  const LOCKED = { miko: false, michael: false, andrea: false };
+
+  function lockArtifact(person) {
+    const item = document.getElementById(person + 'Item').value.trim();
+    const power = document.getElementById(person + 'Power').value.trim();
+    if (!item || !power) {
+      alert('Both fields needed — what you chose AND its power name.');
+      return;
+    }
+    // Assign damage 8-25, weighted to make some choices clearly stronger
+    const dmg = 8 + Math.floor(Math.random() * 18);
+    document.getElementById(person + 'DmgVal').textContent = dmg;
+    document.getElementById(person + 'Dmg').style.display = 'block';
+    const submit = document.querySelector(`.artifact-slot[data-person="${person}"] .artifact-submit`);
+    submit.style.display = 'none';
+    LOCKED[person] = true;
+    // Wand spark burst + magical sound
+    playSfx('magic', 0.6);
+    const slot = document.querySelector('.artifact-slot[data-person="' + person + '"]');
+    if (slot) {
+      const burst = document.createElement('div');
+      burst.className = 'wand-spark';
+      burst.innerHTML = '<span>✦</span><span>✧</span><span>✦</span><span>✧</span><span>✦</span><span>✧</span>';
+      slot.appendChild(burst);
+      setTimeout(() => burst.remove(), 1500);
+    }
+    if (navigator.vibrate) navigator.vibrate([10, 20, 10]);
+    // Save to localStorage as arsenal entry
+    const arsenal = JSON.parse(localStorage.getItem('quest_arsenal') || '[]');
+    arsenal.push({ stop: CURRENT_STOP, person, item, power, dmg });
+    localStorage.setItem('quest_arsenal', JSON.stringify(arsenal));
+    // Check all locked
+    if (LOCKED.miko && LOCKED.michael && LOCKED.andrea) {
+      document.getElementById('artifactContinue').disabled = false;
+      // Reset for next stop
+      Object.keys(LOCKED).forEach(k => LOCKED[k] = false);
+    }
+  }
+
+  function finishStop() {
+    const stop = STOPS[CURRENT_STOP];
+    const next = stop.next;
+    NEXT_STOP = next || 'final';
+    // Mark current stop as done on map, unlock next
+    document.querySelectorAll('.map-pin').forEach(pin => {
+      if (pin.dataset.stop === CURRENT_STOP) {
+        pin.classList.remove('active');
+        pin.classList.add('done');
+      }
+      if (pin.dataset.stop === next) {
+        pin.classList.remove('locked');
+        pin.classList.add('active');
+        pin.onclick = () => openStop(next);
+      }
+    });
+    // Update done pin SVG (replace dragon seal with green check)
+    // Done state is handled by CSS now (emoji + checkmark badge via .map-pin.done .pin-emoji::after)
+    // Move Miko marker to the JUST COMPLETED stop (where he physically IS now)
+    const justDonePin = document.querySelector(`.map-pin[data-stop="${CURRENT_STOP}"]`);
+    const marker = document.getElementById('mikoMarker');
+    if (justDonePin && marker) {
+      marker.style.left = justDonePin.style.left;
+      marker.style.top = justDonePin.style.top;
+      marker.classList.remove('at-start');
+    }
+    // Show Dobby overlay with directions, THEN go to map when user dismisses
+    if (stop.dobbyDirections) {
+      showDobbyOverlay(stop.dobbyDirections);
+    } else {
+      show('scene-map');
+      updateMapNarration();
+    }
+  }
+
+  // --- DIM SUM AT MAXIM'S PALACE ---
+  const DIM_SUM_DISHES = [
+    // — Tier S: absolute icons —
+    { id: 'hargow',   emoji: '🥟', name: 'Har Gow',          cn: '蝦餃',   hp: 6,  blurb: 'crystal-skin shrimp dumplings', img: 'assets/image_58.jpg' },
+    { id: 'siumai',   emoji: '🍢', name: 'Siu Mai',          cn: '燒賣',   hp: 6,  blurb: 'pork & shrimp open-tops', img: 'assets/image_59.jpg'  },
+    { id: 'cha_siu',  emoji: '🍞', name: 'Char Siu Bao',     cn: '叉燒包', hp: 8,  blurb: 'pillowy BBQ pork buns', img: 'assets/image_60.jpg'  },
+    { id: 'cheung',   emoji: '🍣', name: 'Cheung Fun',       cn: '腸粉',   hp: 7,  blurb: 'silky rice rolls in sweet soy', img: 'assets/image_61.jpg'  },
+    { id: 'egg_tart', emoji: '🥧', name: 'Egg Tart',         cn: '蛋撻',   hp: 8,  blurb: 'flaky crust, silken egg', img: 'assets/image_62.jpg'  },
+    // — Tier A: the heroes —
+    { id: 'liu_sha',  emoji: '🟡', name: 'Lava Custard Bun', cn: '流沙包', hp: 12, blurb: 'molten salted-yolk custard', img: 'assets/image_63.jpg'  },
+    { id: 'lo_mai',   emoji: '🍙', name: 'Lo Mai Gai',       cn: '糯米雞', hp: 10, blurb: 'sticky rice in lotus leaf', img: 'assets/image_64.jpg'  },
+    { id: 'pai_gwat', emoji: '🍖', name: 'Steamed Spare Ribs', cn: '排骨',   hp: 7,  blurb: 'pork ribs in black bean sauce', img: 'assets/image_65.jpg'  },
+    { id: 'lo_bak',   emoji: '🟫', name: 'Turnip Cake',      cn: '蘿蔔糕', hp: 7,  blurb: 'pan-fried radish cake', img: 'assets/image_66.jpg'  },
+    { id: 'wu_gok',   emoji: '🟣', name: 'Taro Puff',        cn: '芋角',   hp: 9,  blurb: 'crispy lattice, taro inside', img: 'assets/image_67.jpg'  },
+    { id: 'cha_sou',  emoji: '🥐', name: 'BBQ Pork Pastry',  cn: '叉燒酥', hp: 8,  blurb: 'flaky char siu in puff pastry', img: 'assets/image_68.jpg'  },
+    { id: 'ngau_yuk', emoji: '🍡', name: 'Beef Meatballs',   cn: '牛肉球', hp: 6,  blurb: 'steamed beef on bean curd skin', img: 'assets/image_69.jpg'  },
+    { id: 'fung_zaau',emoji: '🐔', name: 'Chicken Feet',     cn: '鳳爪',   hp: 6,  blurb: 'the dare. spicy black bean', img: 'assets/image_70.jpg'  },
+    // — Sweets to finish —
+    { id: 'mango',    emoji: '🥭', name: 'Mango Pudding',    cn: '芒果布甸', hp: 5,  blurb: 'cold, sweet, dessert classic', img: 'assets/image_71.jpg'  },
+    { id: 'jin_deui', emoji: '🍩', name: 'Sesame Ball',      cn: '煎堆',   hp: 7,  blurb: 'fried glutinous rice + sesame', img: 'assets/image_72.jpg'  },
+    { id: 'ma_lai',   emoji: '🧁', name: 'Ma Lai Go',        cn: '馬拉糕', hp: 5,  blurb: 'steamed brown-sugar sponge cake', img: 'assets/image_73.jpg'  }
+  ];
+  const EATEN_DISHES = new Set();
+  let DIM_SUM_HP_BONUS = 0;
+
+  function openDimSum() {
+    EATEN_DISHES.clear();
+    DIM_SUM_HP_BONUS = 0;
+    document.getElementById('dimsumHpTotal').textContent = '0';
+    document.getElementById('dimsumFinishBtn').disabled = true;
+    document.getElementById('dimsumHint').textContent = 'Tap at least one dish to continue. The more you eat, the longer you stand against him.';
+    // Pull Dobby's portrait from the dobby-corner element (already embedded as base64)
+    const dobbyImg = document.querySelector('.dobby-sprite, #dobbyCorner img');
+    const dPortrait = document.getElementById('dimsumDobbyPortrait');
+    if (dPortrait && dobbyImg && dobbyImg.src) dPortrait.src = dobbyImg.src;
+    const grid = document.getElementById('dimsumGrid');
+    grid.innerHTML = '';
+    DIM_SUM_DISHES.forEach(d => {
+      const card = document.createElement('div');
+      card.className = 'dish-card';
+      card.dataset.id = d.id;
+      const visual = d.img
+        ? `<img class="dish-img" src="${d.img}" alt="${d.name}">`
+        : `<span class="dish-emoji">${d.emoji}</span>`;
+      card.innerHTML = `
+        ${visual}
+        <div class="dish-name">${d.name}</div>
+        <div class="dish-cn">${d.cn}</div>
+        <div class="dish-hp">+${d.hp} ❤</div>
+      `;
+      card.onclick = () => eatDish(d, card);
+      grid.appendChild(card);
+    });
+    show('scene-dimsum');
+  }
+
+  function eatDish(dish, card) {
+    if (EATEN_DISHES.has(dish.id)) return;
+    EATEN_DISHES.add(dish.id);
+    DIM_SUM_HP_BONUS += dish.hp;
+    card.classList.add('eaten');
+    document.getElementById('dimsumHpTotal').textContent = String(DIM_SUM_HP_BONUS);
+    // Floating +HP popup
+    const popup = document.createElement('div');
+    popup.className = 'hp-popup';
+    popup.textContent = '+' + dish.hp;
+    const rect = card.getBoundingClientRect();
+    popup.style.left = (rect.left + rect.width / 2 - 20) + 'px';
+    popup.style.top = (rect.top + 10) + 'px';
+    popup.style.position = 'fixed';
+    popup.style.zIndex = '9999';
+    document.body.appendChild(popup);
+    setTimeout(() => popup.remove(), 950);
+    // Enable finish button
+    document.getElementById('dimsumFinishBtn').disabled = false;
+    const ate = EATEN_DISHES.size;
+    document.getElementById('dimsumHint').textContent = ate === DIM_SUM_DISHES.length
+      ? 'You have eaten everything Dobby asked for. Your strength is at its peak.'
+      : `${ate} of ${DIM_SUM_DISHES.length} dishes eaten — keep going, Master.`;
+  }
+
+  function finishDimSum() {
+    if (DIM_SUM_HP_BONUS <= 0) return;
+    localStorage.setItem('quest_dimsum_hp', String(DIM_SUM_HP_BONUS));
+    finishStop();
+  }
+
+  // --- DOBBY OVERLAY ---
+  function showDobbyOverlay(speech) {
+    document.getElementById('dobbySpeech').textContent = speech;
+    // Use the Dobby image already embedded in the corner
+    const dobbyImg = document.querySelector('.dobby-sprite');
+    if (dobbyImg) {
+      document.getElementById('dobbyBigPortrait').src = dobbyImg.src;
+    }
+    document.getElementById('dobbyOverlay').classList.add('show');
+  }
+  function closeDobbyOverlay() {
+    document.getElementById('dobbyOverlay').classList.remove('show');
+    show('scene-map');
+    updateMapNarration();
+  }
+
+  // --- COUNTDOWN + BATTLE ---
+  let countdownTimer = null;
+  function showCountdown() {
+    show('scene-countdown');
+    // Show real time countdown to 8 PM today (or just show 8:00 PM static if past 8)
+    function tick() {
+      const now = new Date();
+      const eight = new Date();
+      eight.setHours(20, 0, 0, 0);
+      let diff = eight - now;
+      if (diff <= 0) {
+        // Past 8 PM - enable the button immediately
+        document.getElementById('countdownClock').textContent = '08:00';
+        document.getElementById('countdownInstruction').textContent = 'The eighth hour has come. The lights stir across the harbor. Tap below — face him now.';
+        clearInterval(countdownTimer);
+        return;
+      }
+      const mins = Math.floor(diff / 60000);
+      const secs = Math.floor((diff % 60000) / 1000);
+      // Show as time-until-8pm
+      const hh = Math.floor(mins / 60);
+      const mm = mins % 60;
+      document.getElementById('countdownClock').textContent =
+        String(hh).padStart(2,'0') + ':' + String(mm).padStart(2,'0') + ':' + String(secs).padStart(2,'0');
+    }
+    tick();
+    if (countdownTimer) clearInterval(countdownTimer);
+    countdownTimer = setInterval(tick, 1000);
+  }
+
+  // --- BATTLE ENGINE ---
+  let VOLD_HP = 200;
+  let VOLD_HP_MAX = 200;
+  let HERO_HP = 120;
+  let HERO_HP_MAX = 120;
+  let battleArsenal = [];
+  let battleLocked = false;
+
+  const VOLD_ATTACKS = [
+    { name: 'Avada Kedavra', dmg: [10, 14] },
+    { name: 'Crucio', dmg: [8, 11] },
+    { name: 'Sectumsempra', dmg: [7, 10] },
+    { name: 'Dark Mark Lash', dmg: [5, 8] },
+    { name: 'Imperio', dmg: [6, 9] },
+    { name: 'Death Eater Bolt', dmg: [4, 7] },
+    { name: 'Bone-Shatter Hex', dmg: [6, 10] },
+    { name: 'Serpentine Strike', dmg: [5, 9] },
+  ];
+  function startBattle() {
+    if (countdownTimer) clearInterval(countdownTimer);
+    show('scene-battle');
+    startBattleMusic();
+    // Voldemort laughs as he appears — dramatic entrance
+    setTimeout(() => playSfx('laugh', 0.8), 600);
+    // Pull arsenal from localStorage
+    battleArsenal = JSON.parse(localStorage.getItem('quest_arsenal') || '[]');
+    // If empty (testing), seed with demo data
+    if (battleArsenal.length === 0) {
+      // Fallback: 3 weapons (one per person), all from Cat Street — matches Option A flow
+      battleArsenal = [
+        { stop: 'cat', person: 'miko',    item: 'Jade dragon pendant', power: "Dragon's Breath", dmg: 22 },
+        { stop: 'cat', person: 'michael', item: 'Bronze coin',         power: "Lion's Roar",     dmg: 18 },
+        { stop: 'cat', person: 'andrea',  item: 'Old jade mask',       power: 'Veil of Truth',   dmg: 20 },
+      ];
+    }
+    // Each artifact has 3 charges (one per sacred place still to come)
+    battleArsenal.forEach(a => { a.uses = 3; a.used = false; });
+    // Total HP scaled to sum of (damage × charges) × 0.55 so they need most but not every strike
+    const total = battleArsenal.reduce((s, a) => s + a.dmg * a.uses, 0);
+    VOLD_HP_MAX = Math.max(80, Math.round(total * 0.55));
+    VOLD_HP = VOLD_HP_MAX;
+    // Hero HP scales modestly with arsenal size + any dim sum HP bonus earned at Maxim's Palace
+    const dimsumBonus = parseInt(localStorage.getItem('quest_dimsum_hp') || '0', 10) || 0;
+    HERO_HP_MAX = 100 + battleArsenal.length * 4 + dimsumBonus;
+    HERO_HP = HERO_HP_MAX;
+    battleLocked = false;
+    updateVoldHp();
+    updateHeroHp();
+    renderMoves();
+    document.getElementById('battleStatus').innerHTML = '<span style="color:var(--gold-bright);">Tap a power to strike. Stronger powers deal more damage.</span>';
+    // Reset sprite if previously defeated
+    const sprite = document.getElementById('voldSprite');
+    sprite.classList.remove('hit', 'defeated', 'casting');
+    sprite.style.display = 'block';
+    sprite.style.opacity = '1';
+    sprite.style.transform = '';
+    sprite.style.filter = '';
+    const deadSprite = document.getElementById('voldSpriteDead');
+    deadSprite.classList.remove('showing');
+    deadSprite.style.display = 'none';
+  }
+
+  function renderMoves() {
+    const grid = document.getElementById('movesGrid');
+    grid.innerHTML = '';
+    battleArsenal.forEach((m, idx) => {
+      const btn = document.createElement('button');
+      btn.className = 'move-btn ' + m.person;
+      btn.dataset.idx = idx;
+      const usesLeft = (m.uses == null) ? 1 : m.uses;
+      btn.disabled = usesLeft <= 0;
+      btn.innerHTML = `
+        <div class="move-who">${m.person.toUpperCase()}</div>
+        <div class="move-name">${escapeHtml(m.power)}</div>
+        <div class="move-dmg">${m.dmg} dmg · ${usesLeft} ✦</div>
+      `;
+      btn.onclick = () => useMove(idx);
+      grid.appendChild(btn);
+    });
+  }
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function updateVoldHp() {
+    const pct = Math.max(0, VOLD_HP / VOLD_HP_MAX * 100);
+    document.getElementById('voldHpFill').style.width = pct + '%';
+    document.getElementById('voldHpText').textContent = Math.max(0, VOLD_HP) + ' / ' + VOLD_HP_MAX;
+  }
+
+  function updateHeroHp() {
+    const pct = Math.max(0, HERO_HP / HERO_HP_MAX * 100);
+    const fill = document.getElementById('heroHpFill');
+    fill.style.width = pct + '%';
+    fill.classList.remove('low', 'critical');
+    if (pct < 25) fill.classList.add('critical');
+    else if (pct < 50) fill.classList.add('low');
+    document.getElementById('heroHpText').textContent = Math.max(0, HERO_HP) + ' / ' + HERO_HP_MAX;
+  }
+
+  function useMove(idx) {
+    if (battleLocked) return;
+    const m = battleArsenal[idx];
+    if (m.uses == null) m.uses = 1;
+    if (m.uses <= 0) return;
+    m.uses -= 1;
+    battleLocked = true;
+    VOLD_HP -= m.dmg;
+    updateVoldHp();
+    // Damage popup
+    const wrap = document.getElementById('voldSpriteWrap');
+    const popup = document.createElement('div');
+    popup.className = 'damage-popup';
+    popup.textContent = '-' + m.dmg;
+    popup.style.left = (40 + Math.random() * 100) + 'px';
+    popup.style.top = (60 + Math.random() * 40) + 'px';
+    wrap.appendChild(popup);
+    setTimeout(() => popup.remove(), 1300);
+    // Sprite shake + haptic kick + sword swoosh
+    const sprite = document.getElementById('voldSprite');
+    sprite.classList.add('hit');
+    setTimeout(() => sprite.classList.remove('hit'), 400);
+    if (navigator.vibrate) navigator.vibrate([20, 30, 60]);  // satisfying triple-thump
+    playSfx('sword', 0.75);
+    // Status
+    document.getElementById('battleStatus').innerHTML =
+      '<span style="color:var(--parchment);"><b style="color:var(--gold-bright)">' + escapeHtml(m.power) +
+      '</b> strikes for <b style="color:var(--crimson)">' + m.dmg + '</b>!</span>';
+    renderMoves();
+    // Check victory FIRST
+    if (VOLD_HP <= 0) {
+      document.getElementById('battleStatus').innerHTML =
+        '<span style="color:var(--gold-bright); font-size:14px;"><b>The dark one falters! The lights take him!</b></span>';
+      sprite.classList.add('defeated');
+      playSfx('finish', 0.85);
+      if (navigator.vibrate) navigator.vibrate([200, 80, 200, 80, 400]);
+      // After alive sprite dissolves, show dead sprite emerging
+      setTimeout(() => {
+        sprite.style.display = 'none';
+        const dead = document.getElementById('voldSpriteDead');
+        dead.style.display = 'block';
+        dead.classList.add('showing');
+      }, 1500);
+      setTimeout(victoryScene, 4500);
+      return;
+    }
+    // Voldemort counter-attacks
+    setTimeout(voldemortAttack, 1100);
+  }
+
+  function voldemortAttack() {
+    if (VOLD_HP <= 0) return;
+    const atk = VOLD_ATTACKS[Math.floor(Math.random() * VOLD_ATTACKS.length)];
+    const dmg = atk.dmg[0] + Math.floor(Math.random() * (atk.dmg[1] - atk.dmg[0] + 1));
+    // Sprite cast animation
+    const sprite = document.getElementById('voldSprite');
+    sprite.classList.add('casting');
+    setTimeout(() => sprite.classList.remove('casting'), 600);
+    // Screen flash + harsh haptic + impact sound
+    const flash = document.getElementById('voldCastFlash');
+    flash.classList.remove('active');
+    void flash.offsetWidth; // restart animation
+    flash.classList.add('active');
+    if (navigator.vibrate) navigator.vibrate([80, 40, 120]);  // ominous double-thump
+    playSfx('gun', 0.7);
+    // Show damage popup near hero bar
+    setTimeout(() => {
+      const heroRow = document.querySelector('.hero-hp-row');
+      const rect = heroRow.getBoundingClientRect();
+      const popup = document.createElement('div');
+      popup.className = 'hero-dmg-popup';
+      popup.textContent = '-' + dmg;
+      popup.style.left = (rect.left + rect.width / 2) + 'px';
+      popup.style.top = (rect.top - 8) + 'px';
+      document.body.appendChild(popup);
+      setTimeout(() => popup.remove(), 1500);
+      // HARD CAP: Miko cannot lose. Hero HP never drops below 1.
+      const newHp = HERO_HP - dmg;
+      if (newHp <= 0) {
+        HERO_HP = 1;
+        updateHeroHp();
+        document.getElementById('battleStatus').innerHTML =
+          '<span style="color:var(--gold-bright);"><i>"Hold steady, Miko — your friends are with you!" Dumbledore\'s voice rings through your mind. You will not fall.</i></span>';
+      } else {
+        HERO_HP = newHp;
+        updateHeroHp();
+        document.getElementById('battleStatus').innerHTML =
+          '<span style="color:#ff8a8a;"><b style="color:#ff5252;">VOLDEMORT</b> casts <b>' + escapeHtml(atk.name) +
+          '</b> for <b style="color:#ff5252;">' + dmg + '</b>!</span>';
+      }
+      battleLocked = false;
+    }, 350);
+  }
+
+  function victoryScene() {
+    stopBattleMusic(true);
+    const ddImg = document.querySelector('.dumbledore-portrait, .dd-avatar');
+    if (ddImg) document.getElementById('victoryDdPortrait').src = ddImg.src;
+    // Populate the curtain call with the three sorted photos
+    if (typeof SORTING_IMGS !== 'undefined') {
+      const m = document.getElementById('curtainMiko');
+      const mc = document.getElementById('curtainMichael');
+      const an = document.getElementById('curtainAndrea');
+      if (m)  m.src  = SORTING_IMGS.miko_sorted;
+      if (mc) mc.src = SORTING_IMGS.michael_sorted;
+      if (an) an.src = SORTING_IMGS.andrea_sorted;
+    }
+    show('scene-victory');
+  }
+
+  // ====== DEV SKIP — REMOVE BEFORE GIVING TO MIKO ======
+  // DEMO_ARSENAL = 3 weapons (one per person), all collected at Cat Street per Option A
+  const DEMO_ARSENAL = [
+    { stop: 'cat', person: 'miko',    item: 'Jade dragon pendant', power: "Dragon's Breath", dmg: 22 },
+    { stop: 'cat', person: 'michael', item: 'Bronze coin',         power: "Lion's Roar",     dmg: 18 },
+    { stop: 'cat', person: 'andrea',  item: 'Old jade mask',       power: 'Veil of Truth',   dmg: 20 },
+  ];
+
+  function devSkip(target) {
+    // Hide overlays
+    document.getElementById('ddOverlay').classList.remove('show');
+    document.getElementById('dobbyOverlay').classList.remove('show');
+    if (countdownTimer) clearInterval(countdownTimer);
+
+    if (target === 'letter') { show('scene-letter'); letterPage(1); return; }
+    if (target === 'sorting') { openSorting(); return; }
+    if (target === 'rules') { show('scene-rules'); return; }
+    if (target === 'map') {
+      // Make sure all map pins are visible (active for first, locked others)
+      show('scene-map');
+      updateMapNarration();
+      return;
+    }
+    if (target === 'cat' || target === 'manmo' || target === 'peak' || target === 'clock') {
+      CURRENT_STOP = target;
+      NEXT_STOP = target;
+      openStop(target);
+      // Pre-fill correct password
+      setTimeout(() => {
+        document.getElementById('passwordInput').value = STOPS[target].password;
+      }, 100);
+      return;
+    }
+    if (target === 'dimsum') {
+      CURRENT_STOP = 'manmo';
+      NEXT_STOP = 'manmo';
+      openDimSum();
+      return;
+    }
+    if (target === 'artifact') {
+      CURRENT_STOP = 'cat';
+      NEXT_STOP = 'cat';
+      document.getElementById('artifactStopTitle').textContent = 'Cat Street';
+      ['miko', 'michael', 'andrea'].forEach((p, i) => {
+        document.getElementById(p + 'Item').value = DEMO_ARSENAL[i].item;
+        document.getElementById(p + 'Power').value = DEMO_ARSENAL[i].power;
+        document.getElementById(p + 'Dmg').style.display = 'none';
+        const submit = document.querySelector(`.artifact-slot[data-person="${p}"] .artifact-submit`);
+        if (submit) { submit.disabled = false; submit.style.display = 'block'; }
+      });
+      document.getElementById('artifactContinue').disabled = true;
+      show('scene-artifact');
+      return;
+    }
+    if (target === 'countdown') {
+      showCountdown();
+      return;
+    }
+    if (target === 'battle') {
+      localStorage.setItem('quest_arsenal', JSON.stringify(DEMO_ARSENAL));
+      startBattle();
+      return;
+    }
+    if (target === 'victory') {
+      victoryScene();
+      return;
+    }
+  }
+  // ====== END DEV SKIP ======
+
+  // Init
+  startCold();
+</script>
+
+</body>
+</html>
