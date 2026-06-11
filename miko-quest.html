@@ -185,14 +185,19 @@
     box-shadow:
       0 20px 60px rgba(0, 0, 0, 0.8),
       inset 0 0 80px rgba(139, 90, 43, 0.3);
-    padding: 36px 28px;
+    padding: 30px 28px;
     max-width: 540px;
     width: 100%;
-    max-height: 88vh;
+    max-height: 90vh;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
     color: var(--ink);
     line-height: 1.7;
     position: relative;
+    /* Chinese + English layers share one grid cell, so the parchment grows to
+       fit whichever translation is taller (English page 2 is longer than the
+       Chinese) instead of clipping it. */
+    display: grid;
   }
   .parchment::before {
     content: '';
@@ -211,6 +216,7 @@
     opacity: 0.6;
   }
   .letter-text-cn {
+    grid-area: 1 / 1;
     font-size: 17px;
     font-family: 'Songti SC', 'STSong', 'SimSun', serif;
     line-height: 2;
@@ -218,17 +224,13 @@
     text-align: justify;
   }
   .letter-text-en {
+    grid-area: 1 / 1;
     font-size: 15px;
     font-family: 'Georgia', serif;
     line-height: 1.8;
-    position: absolute;
-    inset: 36px 28px;
-    background: #e8d9b0;
     opacity: 0;
     transition: opacity 0.25s ease;
     pointer-events: none;
-    padding-right: 8px;
-    overflow-y: auto;
     z-index: 5;
     color: var(--ink);
   }
