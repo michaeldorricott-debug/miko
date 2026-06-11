@@ -2708,6 +2708,9 @@
       }
     });
     if (sceneHistory[sceneHistory.length - 1] !== sceneId) sceneHistory.push(sceneId);
+    // Always redraw the map from current progress so its icons can never drift
+    // out of sync (e.g. when navigating back to it).
+    if (sceneId === 'scene-map' && typeof renderMap === 'function') { renderMap(); updateMapNarration(); }
     updateDobby(sceneId);
     window.scrollTo(0, 0);
     if (typeof saveProgress === 'function') saveProgress(sceneId);
@@ -2725,6 +2728,9 @@
         s.style.display = 'none';
       }
     });
+    // Redraw the map from current progress when backing into it, so the icons
+    // stay in sync (this path bypasses show()).
+    if (prev === 'scene-map' && typeof renderMap === 'function') { renderMap(); updateMapNarration(); }
     updateDobby(prev);
     window.scrollTo(0, 0);
   }
@@ -3466,6 +3472,41 @@
     setTimeout(() => restoreProgress(), 100);
   });
   const FINAL_NARRATION = "Look — the dark one's mark has risen over Victoria Harbour. The lights are beginning to dance. Walk to the water, Miko Takeshi. He is waiting for you.";
+
+  // Single source of truth for the map. Redraw every pin from NEXT_STOP so the
+  // icons are always correct no matter how we arrived (forward, back, resume,
+  // or dev skip): stops before the next are 'done' (hidden), the next is the
+  // only 'active'/clickable pin, later stops are 'locked' (hidden). Miko's
+  // marker sits at his start, or at the last stop he completed.
+  const STOP_ORDER = ['cat', 'manmo', 'peak', 'clock'];
+  function renderMap() {
+    const next = NEXT_STOP;
+    const nextIdx = (!next || next === 'final') ? STOP_ORDER.length : STOP_ORDER.indexOf(next);
+    STOP_ORDER.forEach((id, i) => {
+      const pin = document.querySelector('.map-pin[data-stop="' + id + '"]');
+      if (!pin) return;
+      pin.classList.remove('active', 'locked', 'done');
+      if (i < nextIdx)       { pin.classList.add('done');   pin.onclick = null; }
+      else if (i === nextIdx) { pin.classList.add('active'); pin.onclick = () => openStop(id); }
+      else                    { pin.classList.add('locked'); pin.onclick = null; }
+    });
+    const marker = document.getElementById('mikoMarker');
+    if (marker) {
+      if (nextIdx <= 0) {
+        marker.style.left = '47%';
+        marker.style.top = '31%';
+        marker.classList.add('at-start');
+      } else {
+        const lastDone = STOP_ORDER[Math.min(nextIdx, STOP_ORDER.length) - 1];
+        const lp = document.querySelector('.map-pin[data-stop="' + lastDone + '"]');
+        if (lp) {
+          marker.style.left = lp.style.left;
+          marker.style.top = lp.style.top;
+          marker.classList.remove('at-start');
+        }
+      }
+    }
+  }
 
   function updateMapNarration() {
     const txt = document.getElementById('mapNarrationText');
