@@ -2909,6 +2909,14 @@
   let OPENING_MUSIC = 'assets/audio_40.mp3'; // opening theme (cold + letter scenes)
   let _openingMusicEl = null;
 
+  // Background-music helpers shared by opening/scene music.
+  // DUCK_VOL = how quiet background music drops while a DD/Dobby voice plays.
+  // _ddSpeaking is true while any narration clip is playing, so in-progress
+  // fade-ins clamp to the ducked level instead of overriding the duck.
+  const DUCK_VOL = 0.08;
+  let _ddSpeaking = false;
+  let _sceneMusicBaseVol = 0.35;
+
 
   // --- BATTLE SOUND EFFECTS ---
   const SFX = {"sword": "assets/sword.mp3", "gun": "assets/gun.mp3", "laugh": "assets/laugh.mp3", "magic": "assets/magic.mp3", "finish": "assets/finish.mp3"};
@@ -2969,13 +2977,15 @@
     a.currentTime = 0;
     a.play().then(() => {
       const targetVol = (key === 'victory') ? 0.38 : (key === 'countdown' ? 0.42 : 0.35);
+      _sceneMusicBaseVol = targetVol;
       const step = targetVol / 22;
       let v = 0;
       a.volume = 0;
-      const fade = setInterval(() => {
+      if (a._fade) clearInterval(a._fade);
+      a._fade = setInterval(() => {
         v += step;
-        if (v >= targetVol) { v = targetVol; clearInterval(fade); }
-        a.volume = v;
+        if (v >= targetVol) { v = targetVol; clearInterval(a._fade); a._fade = null; }
+        a.volume = _ddSpeaking ? Math.min(v, DUCK_VOL) : v;
       }, 80);
     }).catch(err => console.warn('Scene music play failed:', err));
   }
@@ -2983,9 +2993,10 @@
     if (!_sceneMusicEl || _sceneMusicEl.paused) { _sceneMusicCurrentKey = null; return; }
     _sceneMusicCurrentKey = null;
     const a = _sceneMusicEl;
+    if (a._fade) { clearInterval(a._fade); a._fade = null; }
     const step = (a.volume || 0.35) / 18;
-    const interval = setInterval(() => {
-      if (a.volume <= step) { a.volume = 0; a.pause(); clearInterval(interval); }
+    a._fade = setInterval(() => {
+      if (a.volume <= step) { a.volume = 0; a.pause(); clearInterval(a._fade); a._fade = null; }
       else a.volume -= step;
     }, 70);
   }
@@ -3168,34 +3179,41 @@
       const targetVol = 0.32;
       const step = targetVol / 25;
       let v = _openingMusicEl.volume;
-      const fade = setInterval(() => {
+      if (_openingMusicEl._fade) clearInterval(_openingMusicEl._fade);
+      _openingMusicEl._fade = setInterval(() => {
         v += step;
-        if (v >= targetVol) { v = targetVol; clearInterval(fade); }
-        _openingMusicEl.volume = v;
+        if (v >= targetVol) { v = targetVol; clearInterval(_openingMusicEl._fade); _openingMusicEl._fade = null; }
+        _openingMusicEl.volume = _ddSpeaking ? Math.min(v, DUCK_VOL) : v;
       }, 80);
     }).catch(err => console.warn('Opening music play failed:', err));
   }
   function stopOpeningMusic(fade) {
     if (!_openingMusicEl) return;
+    // Cancel any in-progress fade-in first, or it fights the fade-out and the
+    // track never actually pauses (the cause of music bleeding into later scenes).
+    if (_openingMusicEl._fade) { clearInterval(_openingMusicEl._fade); _openingMusicEl._fade = null; }
     if (!fade) { _openingMusicEl.pause(); _openingMusicEl.volume = 0; return; }
     const step = (_openingMusicEl.volume || 0.32) / 18;
-    const interval = setInterval(() => {
+    _openingMusicEl._fade = setInterval(() => {
       if (_openingMusicEl.volume <= step) {
         _openingMusicEl.volume = 0;
         _openingMusicEl.pause();
-        clearInterval(interval);
+        clearInterval(_openingMusicEl._fade);
+        _openingMusicEl._fade = null;
       } else {
         _openingMusicEl.volume -= step;
       }
     }, 80);
   }
   function duckOpeningMusic(low) {
-    // Lower (or raise) ALL background music volume so DD/Dobby voice plays clearly on top
+    // Lower (or raise) ALL background music so the DD/Dobby voice plays clearly
+    // on top. _ddSpeaking makes in-progress fade-ins respect this too.
+    _ddSpeaking = low;
     if (_openingMusicEl && !_openingMusicEl.paused) {
-      _openingMusicEl.volume = low ? 0.08 : 0.32;
+      _openingMusicEl.volume = low ? DUCK_VOL : 0.32;
     }
     if (typeof _sceneMusicEl !== 'undefined' && _sceneMusicEl && !_sceneMusicEl.paused) {
-      _sceneMusicEl.volume = low ? 0.08 : 0.35;
+      _sceneMusicEl.volume = low ? DUCK_VOL : _sceneMusicBaseVol;
     }
   }
 
