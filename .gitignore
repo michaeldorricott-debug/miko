@@ -1,3 +1,9 @@
 # Local-only 58MB backup of the original single-file build (recoverable
 # from git history of the miko-quest.part-* files if ever needed).
 miko-quest.original.html
+
+# Local tooling, never committed
+node_modules/
+package.json
+package-lock.json
+.vercel/

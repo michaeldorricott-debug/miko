@@ -1,0 +1,5 @@
+# Keep the deploy lean — these never need to ship to the preview/host.
+miko-quest.original.html
+extract_assets.py
+.git
+*.part-*
