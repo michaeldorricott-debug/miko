@@ -1879,6 +1879,9 @@
     50%      { transform: scale(1.08); box-shadow: 0 4px 12px rgba(201,42,42,0.7), 0 0 26px rgba(255,217,102,0.85); }
   }
   .map-pin.locked { display: none; }
+  /* Completed stops disappear too — only the single next destination and
+     Miko's own marker are ever shown, so the map never gets crowded. */
+  .map-pin.done { display: none; }
   @keyframes pin-pulse {
     0%, 100% { transform: scale(1); }
     50% { transform: scale(1.15); }
@@ -1969,7 +1972,7 @@
     white-space: nowrap;
     text-align: center;
   }
-  .miko-marker.at-start .miko-here { display: none; }
+  /* Miko's "YOU ARE HERE" badge shows from the very start too. */
   .miko-marker::after {
     content: '';
     display: block;
@@ -2332,7 +2335,6 @@
           <div class="pin-dot pin-emoji">🐈</div>
           <div class="pin-label">Cat Street</div>
           <div class="pin-go">GO HERE →</div>
-          <div class="pin-label">Cat Street 摩羅上街</div>
         </div>
         <!-- Man Mo Temple (Sheung Wan - locked) -->
         <div class="map-pin locked" style="left: 42%; top: 58%;" data-stop="manmo">
@@ -2342,7 +2344,7 @@
         </div>
         <!-- Peak Tram (locked) -->
         <div class="map-pin locked" style="left: 47%; top: 66%;" data-stop="peak">
-          <div class="pin-dot pin-emoji">🚞</div>
+          <div class="pin-dot pin-emoji">⛰️</div>
           <div class="pin-label">The Peak</div>
           <div class="pin-go">GO HERE →</div>
         </div>
@@ -3610,6 +3612,7 @@
       if (pin.dataset.stop === CURRENT_STOP) {
         pin.classList.remove('active');
         pin.classList.add('done');
+        pin.onclick = null;            // done stops are no longer clickable
       }
       if (pin.dataset.stop === next) {
         pin.classList.remove('locked');
