@@ -2716,29 +2716,20 @@
   function show(sceneId) {
     // Stop any Dumbledore audio when scene changes
     if (typeof stopDDAudio === 'function') stopDDAudio();
-    // Music is opt-in via the floating 🔊 Music button (top-right).
-    // iOS Safari blocks audio that auto-starts on scene change; once the
-    // user has tapped the music toggle, _musicEnabled is true and every
-    // subsequent scene-change tap is also a valid user gesture, so audio
-    // can flow track-to-track seamlessly. If music is disabled, just keep
-    // everything paused — battle SFX still get killed when leaving battle.
-    if (sceneId !== 'scene-battle' && _battleMusicEl && !_battleMusicEl.paused) {
-      stopBattleMusic(true);
+    // Music doesn't persist across scenes — iOS Safari can't reliably
+    // swap tracks mid-flight (the underlying bug we chased all day).
+    // Stop everything on every scene change and reset the toggle. If the
+    // user wants music on the new scene, they tap the 🔊 button again —
+    // that fresh user gesture plays the new scene's track cleanly with
+    // no race conditions, no stuck audio, no overlapping playback.
+    if (_battleMusicEl && !_battleMusicEl.paused) {
+      stopBattleMusic(false);
       if (typeof stopAllSfx === 'function') stopAllSfx();
     }
-    if (_musicEnabled) {
-      if (sceneId === 'scene-cold' || sceneId === 'scene-letter') {
-        startOpeningMusic();
-      } else if (_openingMusicEl && !_openingMusicEl.paused) {
-        stopOpeningMusic(true);
-      }
-      const sceneKey = _sceneMusicKey(sceneId);
-      if (sceneKey) playSceneMusic(sceneKey); else fadeOutSceneMusic();
-    } else {
-      // Music disabled — stop anything that might still be playing
-      if (_openingMusicEl && !_openingMusicEl.paused) stopOpeningMusic(false);
-      fadeOutSceneMusic();
-    }
+    if (_openingMusicEl && !_openingMusicEl.paused) stopOpeningMusic(false);
+    fadeOutSceneMusic();
+    _musicEnabled = false;
+    _updateMusicBtn();
     document.querySelectorAll('.scene').forEach(s => {
       if (s.id === sceneId) {
         s.classList.add('visible');
