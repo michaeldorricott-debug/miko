@@ -1081,9 +1081,12 @@
     animation: vold-dead-emerge 3s ease-out forwards;
   }
   @keyframes vold-dead-emerge {
-    0% { opacity: 0; transform: scale(0.6); filter: blur(15px); }
-    40% { opacity: 1; transform: scale(1.1); filter: drop-shadow(0 0 60px rgba(255, 217, 102, 0.8)); }
-    100% { opacity: 1; transform: scale(1); filter: drop-shadow(0 0 40px rgba(201, 42, 42, 0.4)); }
+    /* Explicit blur(0) at 40% and 100% — iOS Safari struggles to
+       interpolate from filter:blur(...) to filter:drop-shadow(...) and
+       can leave residual blur, making the dead sprite look soft. */
+    0%   { opacity: 0; transform: scale(0.6); filter: blur(15px) drop-shadow(0 0 0 transparent); }
+    40%  { opacity: 1; transform: scale(1.1); filter: blur(0) drop-shadow(0 0 60px rgba(255, 217, 102, 0.8)); }
+    100% { opacity: 1; transform: scale(1);   filter: blur(0) drop-shadow(0 0 40px rgba(201, 42, 42, 0.4)); }
   }
   .vold-name {
     color: var(--crimson);
