@@ -4,7 +4,7 @@
 // fetched best-effort in the background and also cached on demand as it plays,
 // so a single missing file can never break the install. Bump CACHE to v2/v3…
 // whenever assets change, to retire the old cache.
-const CACHE = 'miko-quest-v1';
+const CACHE = 'miko-quest-v4';
 const CORE = [
   "./",
   "miko-quest.html",
@@ -101,9 +101,34 @@ self.addEventListener('activate', (event) => {
   })());
 });
 
-// Cache-first: serve from cache, fall back to network, and cache new GETs.
+// Network-first for HTML so patches land on next reload; cache-first
+// for assets so offline mode (walking around HK) stays snappy.
+function isHtmlRequest(request) {
+  if (request.mode === 'navigate') return true;
+  const url = new URL(request.url);
+  return url.pathname.endsWith('.html') || url.pathname === '/' ||
+         url.pathname.endsWith('/');
+}
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
+  if (isHtmlRequest(event.request)) {
+    event.respondWith((async () => {
+      try {
+        const resp = await fetch(event.request, { cache: 'no-store' });
+        if (resp && resp.status === 200) {
+          const cache = await caches.open(CACHE);
+          cache.put(event.request, resp.clone());
+        }
+        return resp;
+      } catch (e) {
+        const cached = await caches.match(event.request);
+        if (cached) return cached;
+        return (await caches.match('miko-quest.html')) ||
+               new Response('Offline', { status: 503 });
+      }
+    })());
+    return;
+  }
   event.respondWith((async () => {
     const cached = await caches.match(event.request);
     if (cached) return cached;
@@ -115,7 +140,7 @@ self.addEventListener('fetch', (event) => {
       }
       return resp;
     } catch (e) {
-      return cached;  // offline and not cached
+      return cached;
     }
   })());
 });

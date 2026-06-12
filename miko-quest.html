@@ -2153,6 +2153,38 @@
 </head>
 <body>
 
+<!-- Floating music toggle. iOS-safe (audio plays from direct user tap). -->
+<style>
+  #musicToggleBtn {
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    z-index: 10000;
+    background: rgba(20, 18, 28, 0.85);
+    color: #f3e9c6;
+    border: 1px solid rgba(243, 233, 198, 0.5);
+    border-radius: 999px;
+    padding: 8px 14px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    transition: background 0.2s, transform 0.1s;
+  }
+  #musicToggleBtn:hover { background: rgba(40, 35, 55, 0.9); }
+  #musicToggleBtn:active { transform: scale(0.95); }
+  #musicToggleBtn[aria-pressed="true"] {
+    background: rgba(74, 56, 109, 0.85);
+    border-color: rgba(243, 233, 198, 0.8);
+  }
+</style>
+<button id="musicToggleBtn" onclick="toggleQuestMusic()" aria-pressed="false" type="button">🔇 Music</button>
+
+
 <!-- RESUME OVERLAY — shown only when a saved scene is restored on page reload -->
 <div id="resumeOverlay" class="resume-overlay" style="display:none;" onclick="dismissResumeOverlay()">
   <div class="resume-card">
@@ -2684,20 +2716,29 @@
   function show(sceneId) {
     // Stop any Dumbledore audio when scene changes
     if (typeof stopDDAudio === 'function') stopDDAudio();
-    // If leaving battle scene, fade out music + kill SFX
+    // Music is opt-in via the floating 🔊 Music button (top-right).
+    // iOS Safari blocks audio that auto-starts on scene change; once the
+    // user has tapped the music toggle, _musicEnabled is true and every
+    // subsequent scene-change tap is also a valid user gesture, so audio
+    // can flow track-to-track seamlessly. If music is disabled, just keep
+    // everything paused — battle SFX still get killed when leaving battle.
     if (sceneId !== 'scene-battle' && _battleMusicEl && !_battleMusicEl.paused) {
       stopBattleMusic(true);
       if (typeof stopAllSfx === 'function') stopAllSfx();
     }
-    // Opening music plays on cold + letter scenes; fades out when leaving those
-    if (sceneId === 'scene-cold' || sceneId === 'scene-letter') {
-      startOpeningMusic();
-    } else if (_openingMusicEl && !_openingMusicEl.paused) {
-      stopOpeningMusic(true);
+    if (_musicEnabled) {
+      if (sceneId === 'scene-cold' || sceneId === 'scene-letter') {
+        startOpeningMusic();
+      } else if (_openingMusicEl && !_openingMusicEl.paused) {
+        stopOpeningMusic(true);
+      }
+      const sceneKey = _sceneMusicKey(sceneId);
+      if (sceneKey) playSceneMusic(sceneKey); else fadeOutSceneMusic();
+    } else {
+      // Music disabled — stop anything that might still be playing
+      if (_openingMusicEl && !_openingMusicEl.paused) stopOpeningMusic(false);
+      fadeOutSceneMusic();
     }
-    // Scene-specific background music
-    const sceneKey = _sceneMusicKey(sceneId);
-    if (sceneKey) playSceneMusic(sceneKey); else fadeOutSceneMusic();
     document.querySelectorAll('.scene').forEach(s => {
       if (s.id === sceneId) {
         s.classList.add('visible');
@@ -2916,6 +2957,40 @@
   const DUCK_VOL = 0.08;
   let _ddSpeaking = false;
   let _sceneMusicBaseVol = 0.35;
+
+  // Music is OPT-IN via a user-tap on the floating 🔊 Music button.
+  // iOS Safari blocks audio that's auto-started on scene change, but
+  // ALWAYS allows audio that comes directly from a user tap. Once the
+  // user enables music, scene-change taps carry the gesture context
+  // forward so music transitions cleanly between scenes.
+  let _musicEnabled = false;
+  function toggleQuestMusic() {
+    _musicEnabled = !_musicEnabled;
+    _updateMusicBtn();
+    if (_musicEnabled) {
+      // Play the right track for the current scene
+      const sceneId = sceneHistory[sceneHistory.length - 1] || 'scene-cold';
+      if (sceneId === 'scene-cold' || sceneId === 'scene-letter') {
+        startOpeningMusic();
+      } else if (sceneId === 'scene-battle') {
+        startBattleMusic();
+      } else {
+        const k = _sceneMusicKey(sceneId);
+        if (k) playSceneMusic(k);
+      }
+    } else {
+      // Stop everything
+      if (_openingMusicEl && !_openingMusicEl.paused) stopOpeningMusic(false);
+      if (_battleMusicEl && !_battleMusicEl.paused) stopBattleMusic(false);
+      fadeOutSceneMusic();
+    }
+  }
+  function _updateMusicBtn() {
+    const btn = document.getElementById('musicToggleBtn');
+    if (!btn) return;
+    btn.textContent = _musicEnabled ? '🔊 Music' : '🔇 Music';
+    btn.setAttribute('aria-pressed', _musicEnabled ? 'true' : 'false');
+  }
 
 
   // --- BATTLE SOUND EFFECTS ---
