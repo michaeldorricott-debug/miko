@@ -638,6 +638,50 @@
     border-right: 8px solid var(--parchment);
   }
   .dobby-bubble strong { color: var(--crimson); }
+  .dobby-close {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 1px solid var(--parchment-dark);
+    background: #fff;
+    color: var(--ink);
+    font-size: 14px;
+    line-height: 1;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .dobby-close:active { background: #eee; transform: scale(0.92); }
+  /* Mini "Dobby?" pill that brings him back after hiding. Sits in the
+     same corner Dobby occupies, but tiny — doesn't block inputs. */
+  #dobbyMiniBtn {
+    display: none;
+    position: fixed;
+    bottom: 18px;
+    left: 18px;
+    z-index: 100;
+    background: rgba(20, 18, 28, 0.85);
+    color: #f3e9c6;
+    border: 1px solid rgba(243, 233, 198, 0.5);
+    border-radius: 999px;
+    padding: 6px 12px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+  #dobbyMiniBtn:active { background: rgba(40, 35, 55, 0.9); transform: scale(0.95); }
 
   /* Fixed next button (mobile bottom) */
   .bottom-action {
@@ -2733,7 +2777,8 @@
 <div class="dobby-corner" id="dobbyCorner" style="display:none;">
   <img class="dobby-sprite" src="assets/image_10.png" alt="Dobby">
   <div class="dobby-bubble" id="dobbyBubble" onclick="dobbyTap()">
-    <strong>Dobby</strong> is happy to guide Master Miko! Tap when ready.
+    <button class="dobby-close" onclick="event.stopPropagation(); hideDobby();" aria-label="Hide Dobby">&times;</button>
+    <div class="dobby-bubble-text" id="dobbyBubbleText"><strong>Dobby</strong> is happy to guide Master Miko! Tap when ready.</div>
     <div style="margin-top:6px;">
       <button class="letter-audio-btn" id="dobbyGreetingAudioBtn" onclick="event.stopPropagation(); toggleDobbyGreetingAudio()" aria-label="Play Dobby" style="padding:6px 12px; font-size:10px;">
         <span class="letter-audio-icon">▶</span>
@@ -2742,6 +2787,8 @@
     </div>
   </div>
 </div>
+<!-- Mini "bring Dobby back" pill, shown when user has hidden him. -->
+<button id="dobbyMiniBtn" type="button" onclick="showDobby()" aria-label="Show Dobby">🧦 Dobby</button>
 
 <script>
   // --- SCENE TRANSITIONS + HISTORY ---
@@ -2795,13 +2842,21 @@
   }
   function updateDobby(sceneId) {
     const d = document.getElementById('dobbyCorner');
+    const mini = document.getElementById('dobbyMiniBtn');
     if (!d) return;
-    // Show Dobby on rules + stop scenes
-    if (sceneId === 'scene-rules' || sceneId === 'scene-stop') {
-      d.style.display = 'flex';
-    } else {
+    // Scenes where Dobby has something to say.
+    const dobbyScenes = ['scene-rules', 'scene-stop', 'scene-map', 'scene-dimsum', 'scene-artifact', 'scene-countdown'];
+    if (dobbyScenes.indexOf(sceneId) === -1) {
       d.style.display = 'none';
+      if (mini) mini.style.display = 'none';
+      return;
     }
+    // Reset hidden state on scene change so the new scene's contextual
+    // message gets a chance to surface. User can hide again if needed.
+    _dobbyHidden = false;
+    d.style.display = 'flex';
+    if (mini) mini.style.display = 'none';
+    _resetDobbyMessage();
   }
 
   // Scene 1 → 2
@@ -3519,16 +3574,115 @@
     }, 50);
   }
 
-  // Dobby tap
-  function dobbyTap() {
-    const bubble = document.getElementById('dobbyBubble');
-    const messages = [
+  // --- DOBBY: scene-aware hints + hideable corner (2026-06-11) ---
+  // Each scene has its own array of hints, getting progressively more
+  // helpful with each tap. At stop scenes the hints point Master toward
+  // where to look without revealing the seal answer itself.
+  const DOBBY_MESSAGES = {
+    'scene-rules': [
       "<strong>Dobby</strong> says: read the three laws carefully, Master Miko!",
       "<strong>Dobby</strong> whispers: scroll down for all three laws!",
       "<strong>Dobby</strong> twitches his ears: when ready, tap 'I AM READY'!",
       "<strong>Dobby</strong> is here to help! Tap me again if Master needs reminders.",
-    ];
-    bubble.innerHTML = messages[Math.floor(Math.random() * messages.length)];
+    ],
+    'scene-map': [
+      "<strong>Dobby</strong> points: tap the <em>glowing</em> mark on the map, Master!",
+      "<strong>Dobby</strong> flutters: only ONE mark glows brightly — that is the next gate!",
+      "<strong>Dobby</strong> whispers: tap the mark, Master Miko, and the next direction will come!",
+    ],
+    'scene-dimsum': [
+      "<strong>Dobby</strong> has saved Master a table at Maxim's Palace!",
+      "<strong>Dobby</strong> is proud: every dish strengthens the team for the battle!",
+      "<strong>Dobby</strong> waits patiently — eat well, Master Miko!",
+      "<strong>Dobby</strong> says: tap each dish to claim its travel power!",
+    ],
+    'scene-artifact': [
+      "<strong>Dobby</strong> is so proud! Each of Master's team must choose a small thing!",
+      "<strong>Dobby</strong> whispers: a stone, a coin, a small trinket — and name its power aloud!",
+      "<strong>Dobby</strong> flutters: tap LOCK IT IN for each, Master, when you are ready!",
+      "<strong>Dobby</strong> says: stronger weapons strike harder — choose with care!",
+    ],
+    'scene-countdown': [
+      "<strong>Dobby</strong> is shaking! The eighth hour grows near, Master Miko!",
+      "<strong>Dobby</strong> points to the harbor: the lights will dance, Master!",
+      "<strong>Dobby</strong> whispers: he is at his weakest when the lights dance!",
+      "<strong>Dobby</strong> trembles: prepare yourselves — the dark one is waiting!",
+    ],
+    'scene-stop': {
+      cat: [
+        "<strong>Dobby</strong> is shaking! The seal is just TWO digits — look up high above a doorway in the lane!",
+        "<strong>Dobby</strong> hops: walk to where the antique stalls cluster THICKEST, Master!",
+        "<strong>Dobby</strong> whispers: above the doorway of the CENTRAL building, Master Miko!",
+        "<strong>Dobby</strong> pleads: look UP, Master! The two numbers are above the door!",
+      ],
+      manmo: [
+        "<strong>Dobby</strong> is so happy! Master must find the YEAR carved at the temple's threshold!",
+        "<strong>Dobby</strong> tilts his head: FOUR digits, Master — a year from long, long ago!",
+        "<strong>Dobby</strong> points: look at the THRESHOLD as you enter the temple gate!",
+        "<strong>Dobby</strong> whispers: it is a year from the 1800s, Master Miko!",
+      ],
+      peak: [
+        "<strong>Dobby</strong> flutters! When did the Peak Tram FIRST run, Master?",
+        "<strong>Dobby</strong> chirps: every sign in the station declares the founding year!",
+        "<strong>Dobby</strong> hops twice: the funicular started in the late 1800s, Master!",
+        "<strong>Dobby</strong> whispers: any plaque or sign in the terminus — the year is bold!",
+      ],
+      clock: [
+        "<strong>Dobby</strong> trembles! The plaque at the BASE of the tower names the year!",
+        "<strong>Dobby</strong> points down: look at the GROUND around the tower, Master!",
+        "<strong>Dobby</strong> whispers: the tower rose in the early 1900s, Master!",
+        "<strong>Dobby</strong> insists: there IS a plaque at the foot — find it, Master!",
+      ],
+    },
+  };
+  let _dobbyHidden = false;
+  let _dobbyTapIdx = 0;
+  let _dobbyLastKey = null;
+
+  function _dobbyMessagesForCurrent() {
+    const sceneId = sceneHistory[sceneHistory.length - 1];
+    if (sceneId === 'scene-stop' && DOBBY_MESSAGES['scene-stop'][CURRENT_STOP]) {
+      return DOBBY_MESSAGES['scene-stop'][CURRENT_STOP];
+    }
+    return DOBBY_MESSAGES[sceneId] || null;
+  }
+  function _setDobbyBubbleText(html) {
+    const t = document.getElementById('dobbyBubbleText');
+    if (t) t.innerHTML = html;
+  }
+  function _resetDobbyMessage() {
+    const msgs = _dobbyMessagesForCurrent();
+    if (!msgs || !msgs.length) return;
+    _dobbyTapIdx = 0;
+    _dobbyLastKey = (sceneHistory[sceneHistory.length - 1]) + ':' + (CURRENT_STOP || '');
+    _setDobbyBubbleText(msgs[0]);
+  }
+  function dobbyTap() {
+    const msgs = _dobbyMessagesForCurrent();
+    if (!msgs || !msgs.length) return;
+    const key = (sceneHistory[sceneHistory.length - 1]) + ':' + (CURRENT_STOP || '');
+    if (_dobbyLastKey !== key) {
+      _dobbyLastKey = key;
+      _dobbyTapIdx = 0;
+    } else {
+      _dobbyTapIdx = (_dobbyTapIdx + 1) % msgs.length;
+    }
+    _setDobbyBubbleText(msgs[_dobbyTapIdx]);
+  }
+  function hideDobby() {
+    _dobbyHidden = true;
+    const d = document.getElementById('dobbyCorner');
+    const mini = document.getElementById('dobbyMiniBtn');
+    if (d) d.style.display = 'none';
+    if (mini) mini.style.display = 'inline-block';
+  }
+  function showDobby() {
+    _dobbyHidden = false;
+    const d = document.getElementById('dobbyCorner');
+    const mini = document.getElementById('dobbyMiniBtn');
+    if (mini) mini.style.display = 'none';
+    if (d) d.style.display = 'flex';
+    _resetDobbyMessage();
   }
 
   // Scene 3 → 4 (Map)
