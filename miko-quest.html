@@ -3686,6 +3686,14 @@
   document.addEventListener('visibilitychange', () => { if (document.hidden) saveProgress(); });
   // Restore once DOM is ready
   document.addEventListener('DOMContentLoaded', () => {
+    // Dev panel: only visible when URL contains ?dev. For Miko's actual
+    // birthday playthrough, open the URL without ?dev and the panel is
+    // removed from the DOM entirely (so he can't accidentally tap one).
+    // Add ?dev to keep using it for testing.
+    if (!/[?&]dev\b/.test(location.search)) {
+      const dp = document.getElementById('devPanel');
+      if (dp && dp.parentNode) dp.parentNode.removeChild(dp);
+    }
     // Opening with ?fresh (or ?reset) wipes any saved progress and starts clean.
     if (/[?&](fresh|reset)\b/.test(location.search)) { resetProgress(); return; }
     // While the dev skip panel is present, never auto-resume — testing should
