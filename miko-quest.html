@@ -2844,19 +2844,18 @@
     const d = document.getElementById('dobbyCorner');
     const mini = document.getElementById('dobbyMiniBtn');
     if (!d) return;
-    // Scenes where Dobby has something to say.
-    const dobbyScenes = ['scene-rules', 'scene-stop', 'scene-map', 'scene-dimsum', 'scene-artifact', 'scene-countdown'];
-    if (dobbyScenes.indexOf(sceneId) === -1) {
+    // Original scope: Dobby appears on rules + stop only.
+    if (sceneId === 'scene-rules' || sceneId === 'scene-stop') {
+      // Reset hidden state on scene change so user sees Dobby by default.
+      _dobbyHidden = false;
+      d.style.display = 'flex';
+      if (mini) mini.style.display = 'none';
+      // Reset bubble to its original greeting.
+      _setDobbyBubbleText("<strong>Dobby</strong> is happy to guide Master Miko! Tap when ready.");
+    } else {
       d.style.display = 'none';
       if (mini) mini.style.display = 'none';
-      return;
     }
-    // Reset hidden state on scene change so the new scene's contextual
-    // message gets a chance to surface. User can hide again if needed.
-    _dobbyHidden = false;
-    d.style.display = 'flex';
-    if (mini) mini.style.display = 'none';
-    _resetDobbyMessage();
   }
 
   // Scene 1 → 2
@@ -3574,100 +3573,23 @@
     }, 50);
   }
 
-  // --- DOBBY: scene-aware hints + hideable corner (2026-06-11) ---
-  // Each scene has its own array of hints, getting progressively more
-  // helpful with each tap. At stop scenes the hints point Master toward
-  // where to look without revealing the seal answer itself.
-  const DOBBY_MESSAGES = {
-    'scene-rules': [
-      "<strong>Dobby</strong> says: read the three laws carefully, Master Miko!",
-      "<strong>Dobby</strong> whispers: scroll down for all three laws!",
-      "<strong>Dobby</strong> twitches his ears: when ready, tap 'I AM READY'!",
-      "<strong>Dobby</strong> is here to help! Tap me again if Master needs reminders.",
-    ],
-    'scene-map': [
-      "<strong>Dobby</strong> points: tap the <em>glowing</em> mark on the map, Master!",
-      "<strong>Dobby</strong> flutters: only ONE mark glows brightly — that is the next gate!",
-      "<strong>Dobby</strong> whispers: tap the mark, Master Miko, and the next direction will come!",
-    ],
-    'scene-dimsum': [
-      "<strong>Dobby</strong> has saved Master a table at Maxim's Palace!",
-      "<strong>Dobby</strong> is proud: every dish strengthens the team for the battle!",
-      "<strong>Dobby</strong> waits patiently — eat well, Master Miko!",
-      "<strong>Dobby</strong> says: tap each dish to claim its travel power!",
-    ],
-    'scene-artifact': [
-      "<strong>Dobby</strong> is so proud! Each of Master's team must choose a small thing!",
-      "<strong>Dobby</strong> whispers: a stone, a coin, a small trinket — and name its power aloud!",
-      "<strong>Dobby</strong> flutters: tap LOCK IT IN for each, Master, when you are ready!",
-      "<strong>Dobby</strong> says: stronger weapons strike harder — choose with care!",
-    ],
-    'scene-countdown': [
-      "<strong>Dobby</strong> is shaking! The eighth hour grows near, Master Miko!",
-      "<strong>Dobby</strong> points to the harbor: the lights will dance, Master!",
-      "<strong>Dobby</strong> whispers: he is at his weakest when the lights dance!",
-      "<strong>Dobby</strong> trembles: prepare yourselves — the dark one is waiting!",
-    ],
-    'scene-stop': {
-      cat: [
-        "<strong>Dobby</strong> is shaking! The seal is just TWO digits — look up high above a doorway in the lane!",
-        "<strong>Dobby</strong> hops: walk to where the antique stalls cluster THICKEST, Master!",
-        "<strong>Dobby</strong> whispers: above the doorway of the CENTRAL building, Master Miko!",
-        "<strong>Dobby</strong> pleads: look UP, Master! The two numbers are above the door!",
-      ],
-      manmo: [
-        "<strong>Dobby</strong> is so happy! Master must find the YEAR carved at the temple's threshold!",
-        "<strong>Dobby</strong> tilts his head: FOUR digits, Master — a year from long, long ago!",
-        "<strong>Dobby</strong> points: look at the THRESHOLD as you enter the temple gate!",
-        "<strong>Dobby</strong> whispers: it is a year from the 1800s, Master Miko!",
-      ],
-      peak: [
-        "<strong>Dobby</strong> flutters! When did the Peak Tram FIRST run, Master?",
-        "<strong>Dobby</strong> chirps: every sign in the station declares the founding year!",
-        "<strong>Dobby</strong> hops twice: the funicular started in the late 1800s, Master!",
-        "<strong>Dobby</strong> whispers: any plaque or sign in the terminus — the year is bold!",
-      ],
-      clock: [
-        "<strong>Dobby</strong> trembles! The plaque at the BASE of the tower names the year!",
-        "<strong>Dobby</strong> points down: look at the GROUND around the tower, Master!",
-        "<strong>Dobby</strong> whispers: the tower rose in the early 1900s, Master!",
-        "<strong>Dobby</strong> insists: there IS a plaque at the foot — find it, Master!",
-      ],
-    },
-  };
+  // --- DOBBY: original generic messages + hideable corner ---
+  // Reverted to the original 4-message bank (matches the custom recorded
+  // audio). The hide/show controls stay so Dobby can be dismissed when
+  // he's blocking an input field, and the small 🧦 pill brings him back.
+  const DOBBY_GENERIC = [
+    "<strong>Dobby</strong> says: read the three laws carefully, Master Miko!",
+    "<strong>Dobby</strong> whispers: scroll down for all three laws!",
+    "<strong>Dobby</strong> twitches his ears: when ready, tap 'I AM READY'!",
+    "<strong>Dobby</strong> is here to help! Tap me again if Master needs reminders.",
+  ];
   let _dobbyHidden = false;
-  let _dobbyTapIdx = 0;
-  let _dobbyLastKey = null;
-
-  function _dobbyMessagesForCurrent() {
-    const sceneId = sceneHistory[sceneHistory.length - 1];
-    if (sceneId === 'scene-stop' && DOBBY_MESSAGES['scene-stop'][CURRENT_STOP]) {
-      return DOBBY_MESSAGES['scene-stop'][CURRENT_STOP];
-    }
-    return DOBBY_MESSAGES[sceneId] || null;
-  }
   function _setDobbyBubbleText(html) {
     const t = document.getElementById('dobbyBubbleText');
     if (t) t.innerHTML = html;
   }
-  function _resetDobbyMessage() {
-    const msgs = _dobbyMessagesForCurrent();
-    if (!msgs || !msgs.length) return;
-    _dobbyTapIdx = 0;
-    _dobbyLastKey = (sceneHistory[sceneHistory.length - 1]) + ':' + (CURRENT_STOP || '');
-    _setDobbyBubbleText(msgs[0]);
-  }
   function dobbyTap() {
-    const msgs = _dobbyMessagesForCurrent();
-    if (!msgs || !msgs.length) return;
-    const key = (sceneHistory[sceneHistory.length - 1]) + ':' + (CURRENT_STOP || '');
-    if (_dobbyLastKey !== key) {
-      _dobbyLastKey = key;
-      _dobbyTapIdx = 0;
-    } else {
-      _dobbyTapIdx = (_dobbyTapIdx + 1) % msgs.length;
-    }
-    _setDobbyBubbleText(msgs[_dobbyTapIdx]);
+    _setDobbyBubbleText(DOBBY_GENERIC[Math.floor(Math.random() * DOBBY_GENERIC.length)]);
   }
   function hideDobby() {
     _dobbyHidden = true;
@@ -3682,7 +3604,6 @@
     const mini = document.getElementById('dobbyMiniBtn');
     if (mini) mini.style.display = 'none';
     if (d) d.style.display = 'flex';
-    _resetDobbyMessage();
   }
 
   // Scene 3 → 4 (Map)
