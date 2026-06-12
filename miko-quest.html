@@ -501,6 +501,31 @@
   }
   .sort-action-btn:active { background: rgba(40, 28, 14, 0.95); }
   .sort-continue { border-color: #6ee87c; color: #d8f5e0; }
+  /* Per-person sort button — smaller, fits inside each slot. */
+  .sort-person-btn {
+    display: block;
+    width: 100%;
+    margin-top: 10px;
+    padding: 10px 12px;
+    background: rgba(20, 12, 6, 0.92);
+    border: 2px solid var(--gold-bright);
+    color: var(--gold-bright);
+    font-size: 12px;
+    font-weight: bold;
+    letter-spacing: 0.15em;
+    font-family: 'Georgia', serif;
+    cursor: pointer;
+    border-radius: 4px;
+    text-shadow: 0 1px 2px #000;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  }
+  .sort-person-btn:active { background: rgba(40, 28, 14, 0.95); transform: scale(0.97); }
+  .sort-person-btn[disabled],
+  .sort-person-btn.done {
+    opacity: 0.45;
+    cursor: default;
+    pointer-events: none;
+  }
 
   /* SCENE 3: Dobby + Rules */
   #scene-rules {
@@ -2297,6 +2322,7 @@
         </div>
         <div class="sort-mutter" id="sortMutterMiko"></div>
         <div class="sort-house" id="sortHouseMiko"></div>
+        <button class="sort-person-btn" id="sortBtnMiko" onclick="sortPerson('miko')">🎩 SORT MIKO</button>
       </div>
 
       <div class="sort-slot" data-person="michael">
@@ -2306,6 +2332,7 @@
         </div>
         <div class="sort-mutter" id="sortMutterMichael"></div>
         <div class="sort-house" id="sortHouseMichael"></div>
+        <button class="sort-person-btn" id="sortBtnMichael" onclick="sortPerson('michael')">🎩 SORT MICHAEL</button>
       </div>
 
       <div class="sort-slot" data-person="andrea">
@@ -2315,10 +2342,13 @@
         </div>
         <div class="sort-mutter" id="sortMutterAndrea"></div>
         <div class="sort-house" id="sortHouseAndrea"></div>
+        <button class="sort-person-btn" id="sortBtnAndrea" onclick="sortPerson('andrea')">🎩 SORT ANDREA</button>
       </div>
     </div>
 
-    <button class="sort-action-btn" id="sortHatBtn" onclick="placeSortingHat()">🎩 PLACE THE SORTING HAT</button>
+    <!-- Old "all at once" buttons hidden by default. Per-person buttons are
+         now inside each .sort-slot above. -->
+    <button class="sort-action-btn" id="sortHatBtn" onclick="placeSortingHat()" style="display:none;">🎩 PLACE THE SORTING HAT</button>
     <button class="sort-action-btn" id="sortRevealBtn" onclick="revealHouses()" style="display:none;">REVEAL THE HOUSES →</button>
     <button class="sort-action-btn sort-continue" id="sortContinueBtn" onclick="goToRulesFromSorting()" style="display:none;">CONTINUE THE QUEST →</button>
   </div>
@@ -2841,8 +2871,13 @@
     }
   };
 
+  // Track who's been sorted this run (so we know when to show CONTINUE).
+  const _sortedPeople = new Set();
+
   function openSorting() {
-    // Reset
+    _sortedPeople.clear();
+    // Reset slots, photos, mutters, houses, and per-person buttons.
+    const labels = { miko: '🎩 SORT MIKO', michael: '🎩 SORT MICHAEL', andrea: '🎩 SORT ANDREA' };
     ['miko', 'michael', 'andrea'].forEach(p => {
       const slot = document.querySelector('.sort-slot[data-person="' + p + '"]');
       slot.classList.remove('house-gryf', 'house-slyt', 'house-huff');
@@ -2854,18 +2889,96 @@
       const h = document.getElementById('sortHouse' + cap);
       h.textContent = '';
       h.className = 'sort-house';
+      const btn = document.getElementById('sortBtn' + cap);
+      if (btn) {
+        btn.textContent = labels[p];
+        btn.classList.remove('done');
+        btn.disabled = false;
+        btn.style.display = '';
+      }
     });
     document.getElementById('sortingSpeech').innerHTML =
-      'One thing more, Miko Takeshi. The dark one\'s magic is older than any one of you alone — and to stand against him tonight, you will need the strength of the founders themselves. <br/><br/>The Sorting Hat has been sent ahead. Place it on each of you in turn. The houses will choose who you are, just for tonight.';
+      'One thing more, Miko Takeshi. The dark one\'s magic is older than any one of you alone — and to stand against him tonight, you will need the strength of the founders themselves. <br/><br/>The Sorting Hat has been sent ahead. Tap each name in turn to place the hat. The houses will choose who you are, just for tonight.';
     // Reuse Dumbledore portrait already embedded in cold/letter scene
     const existing = document.querySelector('.dumbledore-portrait, .dd-avatar, .dd-big-portrait');
     if (existing && existing.src) {
       document.getElementById('sortingDdPortrait').src = existing.src;
     }
-    document.getElementById('sortHatBtn').style.display = '';
+    document.getElementById('sortHatBtn').style.display = 'none';     // legacy "all at once" — disabled
     document.getElementById('sortRevealBtn').style.display = 'none';
     document.getElementById('sortContinueBtn').style.display = 'none';
     show('scene-sorting');
+  }
+
+  // Sort ONE person at a time: hat -> mutter -> verdict -> photo swap + house.
+  // ~3.8s sequence per person. Their button is disabled when sorting starts;
+  // when all three are done, the CONTINUE button appears and the page
+  // smoothly scrolls to it.
+  function sortPerson(p) {
+    if (_sortedPeople.has(p)) return;
+    _sortedPeople.add(p);
+    const cap = p.charAt(0).toUpperCase() + p.slice(1);
+    const data = SORTING_DATA[p];
+    if (!data) return;
+
+    const btn = document.getElementById('sortBtn' + cap);
+    if (btn) {
+      btn.disabled = true;
+      btn.classList.add('done');
+      btn.textContent = '… sorting …';
+    }
+    const img = document.getElementById('sortPhoto' + cap);
+    const m = document.getElementById('sortMutter' + cap);
+    const h = document.getElementById('sortHouse' + cap);
+    const slot = document.querySelector('.sort-slot[data-person="' + p + '"]');
+
+    // Scroll the slot into view so the user can see the animation.
+    try { slot.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) {}
+
+    // 1) Hat lands on plain photo
+    img.classList.add('swapping');
+    setTimeout(() => {
+      img.src = SORTING_IMGS[p + '_hat'];
+      img.classList.remove('swapping');
+    }, 380);
+    // 2) Mutter appears
+    setTimeout(() => {
+      m.textContent = data.mutter;
+      m.classList.add('showing');
+    }, 950);
+    // 3) Dramatic pause, then verdict text replaces mutter
+    setTimeout(() => {
+      m.textContent = data.verdict;
+    }, 2500);
+    // 4) Photo swaps to sorted variant + house reveal
+    setTimeout(() => {
+      img.classList.add('swapping');
+      setTimeout(() => {
+        img.src = SORTING_IMGS[p + '_sorted'];
+        img.classList.remove('swapping');
+        slot.classList.add('house-' + data.house);
+        h.textContent = data.house === 'gryf' ? 'GRYFFINDOR'
+                      : data.house === 'slyt' ? 'SLYTHERIN'
+                      : 'HUFFLEPUFF';
+        h.classList.add(data.house, 'revealed');
+        if (btn) btn.textContent = '✓ SORTED';
+      }, 420);
+    }, 2900);
+    // 5) After this person is done, either scroll to the next un-sorted
+    //    person, or (if all three are done) reveal CONTINUE + scroll to it.
+    setTimeout(() => {
+      const order = ['miko', 'michael', 'andrea'];
+      const next = order.find(x => !_sortedPeople.has(x));
+      if (next) {
+        const target = document.querySelector('.sort-slot[data-person="' + next + '"]');
+        if (target) try { target.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) {}
+      } else {
+        const cont = document.getElementById('sortContinueBtn');
+        cont.style.display = '';
+        localStorage.setItem('quest_sorting_done', '1');
+        try { cont.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) {}
+      }
+    }, 3800);
   }
 
   function placeSortingHat() {
