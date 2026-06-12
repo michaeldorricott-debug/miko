@@ -3092,6 +3092,44 @@
     btn.textContent = _musicEnabled ? '🔊 Music' : '🔇 Music';
     btn.setAttribute('aria-pressed', _musicEnabled ? 'true' : 'false');
   }
+  // EMERGENCY: long-press the music button for 3s to reveal the dev skip
+  // panel (without needing to edit the URL). For day-of recovery if a
+  // scene glitches and Michael needs to jump past it. The panel respects
+  // existing save state — using a skip button won't wipe Miko's progress.
+  function _bindMusicLongPress() {
+    const btn = document.getElementById('musicToggleBtn');
+    if (!btn) return;
+    let timer = null;
+    const start = (e) => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        timer = null;
+        // Reveal dev panel — re-inject if it was removed at page load.
+        let panel = document.getElementById('devPanel');
+        if (panel) {
+          panel.style.display = '';
+        } else {
+          // Force reload with ?dev tacked on so the static panel HTML loads.
+          const sep = location.search ? '&' : '?';
+          location.search = (location.search || '') + sep + 'dev';
+        }
+      }, 3000);
+    };
+    const cancel = () => { if (timer) { clearTimeout(timer); timer = null; } };
+    btn.addEventListener('touchstart', start, { passive: true });
+    btn.addEventListener('touchend', cancel);
+    btn.addEventListener('touchmove', cancel);
+    btn.addEventListener('touchcancel', cancel);
+    btn.addEventListener('mousedown', start);
+    btn.addEventListener('mouseup', cancel);
+    btn.addEventListener('mouseleave', cancel);
+  }
+  // Bind once DOM is ready (the music button exists from page load).
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', _bindMusicLongPress);
+  } else {
+    _bindMusicLongPress();
+  }
   // Hard-stop every music source in the page and reset the toggle. Used
   // by every code path that changes scenes — show(), goBack(), goBackToMap()
   // — so music can never bleed into the next scene regardless of which
@@ -3728,18 +3766,16 @@
     }
     // Dev panel: only visible when URL contains ?dev. For Miko's actual
     // birthday playthrough, open the URL without ?dev and the panel is
-    // removed from the DOM entirely (so he can't accidentally tap one).
-    // Add ?dev to keep using it for testing.
+    // removed from the DOM (so he can't accidentally tap one).
+    // Add ?dev to keep using it for testing OR to recover mid-quest if
+    // something glitches in the field — ?dev preserves save state now.
     if (!/[?&]dev\b/.test(location.search)) {
       const dp = document.getElementById('devPanel');
       if (dp && dp.parentNode) dp.parentNode.removeChild(dp);
     }
-    // Opening with ?fresh (or ?reset) wipes any saved progress and starts clean.
+    // Opening with ?fresh (or ?reset) wipes save and starts from cold open.
     if (/[?&](fresh|reset)\b/.test(location.search)) { resetProgress(); return; }
-    // While the dev skip panel is present, never auto-resume — testing should
-    // always begin at the cold open / first map. Auto-resume returns for Miko
-    // automatically once the dev panel is removed.
-    if (document.getElementById('devPanel')) { resetProgress(); return; }
+    // Restore progress normally (devPanel present or not).
     setTimeout(() => restoreProgress(), 100);
   });
   const FINAL_NARRATION = "Look — the dark one's mark has risen over Victoria Harbour. The lights are beginning to dance. Walk to the water, Miko Takeshi. He is waiting for you.";
