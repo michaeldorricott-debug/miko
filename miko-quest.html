@@ -2716,20 +2716,10 @@
   function show(sceneId) {
     // Stop any Dumbledore audio when scene changes
     if (typeof stopDDAudio === 'function') stopDDAudio();
-    // Music doesn't persist across scenes — iOS Safari can't reliably
-    // swap tracks mid-flight (the underlying bug we chased all day).
-    // Stop everything on every scene change and reset the toggle. If the
-    // user wants music on the new scene, they tap the 🔊 button again —
-    // that fresh user gesture plays the new scene's track cleanly with
-    // no race conditions, no stuck audio, no overlapping playback.
-    if (_battleMusicEl && !_battleMusicEl.paused) {
-      stopBattleMusic(false);
-      if (typeof stopAllSfx === 'function') stopAllSfx();
-    }
-    if (_openingMusicEl && !_openingMusicEl.paused) stopOpeningMusic(false);
-    fadeOutSceneMusic();
-    _musicEnabled = false;
-    _updateMusicBtn();
+    // Hard-stop ALL music + SFX on every scene change. User taps the
+    // 🔊 button again on the new scene if they want music there.
+    if (typeof stopAllSfx === 'function') stopAllSfx();
+    _killAllMusic();
     document.querySelectorAll('.scene').forEach(s => {
       if (s.id === sceneId) {
         s.classList.add('visible');
@@ -2749,6 +2739,10 @@
   }
   function goBack() {
     if (sceneHistory.length <= 1) return;
+    // Kill music so it doesn't bleed into the previous scene (this path
+    // bypasses show()).
+    if (typeof _killAllMusic === 'function') _killAllMusic();
+    if (typeof stopDDAudio === 'function') stopDDAudio();
     sceneHistory.pop();
     const prev = sceneHistory[sceneHistory.length - 1];
     document.querySelectorAll('.scene').forEach(s => {
@@ -2982,6 +2976,17 @@
     btn.textContent = _musicEnabled ? '🔊 Music' : '🔇 Music';
     btn.setAttribute('aria-pressed', _musicEnabled ? 'true' : 'false');
   }
+  // Hard-stop every music source in the page and reset the toggle. Used
+  // by every code path that changes scenes — show(), goBack(), goBackToMap()
+  // — so music can never bleed into the next scene regardless of which
+  // navigation function was called.
+  function _killAllMusic() {
+    try { if (_openingMusicEl && !_openingMusicEl.paused) { stopOpeningMusic(false); } } catch (e) {}
+    try { if (_battleMusicEl && !_battleMusicEl.paused) { stopBattleMusic(false); } } catch (e) {}
+    try { fadeOutSceneMusic(); } catch (e) {}
+    _musicEnabled = false;
+    _updateMusicBtn();
+  }
 
 
   // --- BATTLE SOUND EFFECTS ---
@@ -3072,20 +3077,13 @@
     }).catch(err => console.warn('Scene music play failed:', err));
   }
   function fadeOutSceneMusic() {
+    // Immediate pause — iOS Safari ignores audio.volume changes, so a
+    // gradual fade would never reach zero and the track would play
+    // forever. Just stop. Music can never get stuck this way.
     Object.values(_scenePool).forEach((el) => {
-      if (!el || el.paused) return;
+      if (!el) return;
       if (el._fade) { clearInterval(el._fade); el._fade = null; }
-      const step = (el.volume || 0.35) / 18;
-      el._fade = setInterval(() => {
-        if (el.volume <= step) {
-          el.volume = 0;
-          try { el.pause(); el.currentTime = 0; } catch (e) {}
-          clearInterval(el._fade);
-          el._fade = null;
-        } else {
-          el.volume -= step;
-        }
-      }, 70);
+      try { el.pause(); el.currentTime = 0; el.volume = 0; } catch (e) {}
     });
     _sceneMusicCurrentKey = null;
   }
@@ -3386,6 +3384,8 @@
     updateMapNarration();
   }
   function goBackToMap() {
+    if (typeof _killAllMusic === 'function') _killAllMusic();
+    if (typeof stopDDAudio === 'function') stopDDAudio();
     show('scene-map');
   
     updateMapNarration();
