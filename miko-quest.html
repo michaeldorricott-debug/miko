@@ -3662,11 +3662,42 @@
       ov.style.display = 'none';
       ov.style.opacity = '';
       ov.style.transition = '';
-      // Now actually jump to the restored scene — this user-tap unlocks audio
+      // Re-enter the scene through its INIT function so the card content
+      // (title, lore, riddle, image, etc.) is actually populated — not
+      // just shown blank. Bare show() only flips display:flex; it does
+      // not refill the DOM.
       const target = window._pendingRestoreScene;
       if (target) {
-        show(target);
-        if (target === 'scene-letter') letterPage(1);
+        try {
+          if (target === 'scene-stop') {
+            if (CURRENT_STOP && typeof STOPS !== 'undefined' && STOPS[CURRENT_STOP]
+                && typeof openStop === 'function') {
+              openStop(CURRENT_STOP);
+            } else {
+              show('scene-map');
+              if (typeof updateMapNarration === 'function') updateMapNarration();
+            }
+          } else if (target === 'scene-dimsum' && typeof openDimSum === 'function') {
+            openDimSum();
+          } else if (target === 'scene-countdown' && typeof showCountdown === 'function') {
+            showCountdown();
+          } else if (target === 'scene-artifact') {
+            // Artifact uses session-only state (inputs, locks) that isn't
+            // saved. Drop the user back to the map rather than an empty card.
+            show('scene-map');
+            if (typeof updateMapNarration === 'function') updateMapNarration();
+          } else if (target === 'scene-letter') {
+            show(target);
+            letterPage(1);
+          } else {
+            show(target);
+          }
+        } catch (e) {
+          // If anything throws during restore, fall back to the map so
+          // the user is never stuck on a blank screen.
+          console.warn('Restore failed, returning to map:', e);
+          show('scene-map');
+        }
         delete window._pendingRestoreScene;
       }
     }, 400);
