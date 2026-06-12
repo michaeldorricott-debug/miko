@@ -3021,33 +3021,49 @@
     if (sceneId === 'scene-victory')   return 'victory';
     return null;
   }
-  let _sceneMusicEl = null;
+  // --- PER-TRACK SCENE MUSIC POOL (rebuilt 2026-06-11) ---
+  // The old shared <audio> element + src swap pattern is the exact iOS
+  // Safari bug that's been intermittent all day. Now: one element per
+  // track. Each is created lazily on first use, src is set ONCE, and
+  // play()/pause() never touch any other element. No src mutation,
+  // no race, no overlap.
+  const _scenePool = {};        // key -> audio element
   let _sceneMusicCurrentKey = null;
-  function _sceneAudioEl() {
-    if (!_sceneMusicEl) {
-      _sceneMusicEl = document.createElement('audio');
-      _sceneMusicEl.id = 'sceneMusic';
-      _sceneMusicEl.loop = true;
-      _sceneMusicEl.volume = 0;
-      document.body.appendChild(_sceneMusicEl);
+  let _sceneMusicEl = null;     // alias to currently-playing element (for ducking)
+  function _sceneElFor(key) {
+    if (!_scenePool[key]) {
+      const el = document.createElement('audio');
+      el.id = 'sceneMusic_' + key;
+      el.loop = true;
+      el.volume = 0;
+      el.src = SCENE_MUSIC[key];
+      el.preload = 'auto';
+      document.body.appendChild(el);
+      _scenePool[key] = el;
     }
-    return _sceneMusicEl;
+    return _scenePool[key];
   }
+  function _sceneAudioEl() { return _sceneMusicEl; }
   function playSceneMusic(key) {
     if (!key || !SCENE_MUSIC[key]) { fadeOutSceneMusic(); return; }
-    if (_sceneMusicCurrentKey === key && _sceneMusicEl && !_sceneMusicEl.paused) return; // already playing
-    const a = _sceneAudioEl();
-    a.pause();
+    // Hard-stop every OTHER scene track immediately — no fade, no race.
+    Object.entries(_scenePool).forEach(([k, el]) => {
+      if (k === key) return;
+      if (el._fade) { clearInterval(el._fade); el._fade = null; }
+      try { el.pause(); el.currentTime = 0; el.volume = 0; } catch (e) {}
+    });
+    const a = _sceneElFor(key);
     _sceneMusicCurrentKey = key;
-    a.src = SCENE_MUSIC[key];
-    a.currentTime = 0;
+    _sceneMusicEl = a;
+    if (!a.paused) return;     // already playing this track
+    if (a._fade) { clearInterval(a._fade); a._fade = null; }
+    try { a.currentTime = 0; } catch (e) {}
+    a.volume = 0;
     a.play().then(() => {
       const targetVol = (key === 'victory') ? 0.38 : (key === 'countdown' ? 0.42 : 0.35);
       _sceneMusicBaseVol = targetVol;
       const step = targetVol / 22;
       let v = 0;
-      a.volume = 0;
-      if (a._fade) clearInterval(a._fade);
       a._fade = setInterval(() => {
         v += step;
         if (v >= targetVol) { v = targetVol; clearInterval(a._fade); a._fade = null; }
@@ -3056,15 +3072,22 @@
     }).catch(err => console.warn('Scene music play failed:', err));
   }
   function fadeOutSceneMusic() {
-    if (!_sceneMusicEl || _sceneMusicEl.paused) { _sceneMusicCurrentKey = null; return; }
+    Object.values(_scenePool).forEach((el) => {
+      if (!el || el.paused) return;
+      if (el._fade) { clearInterval(el._fade); el._fade = null; }
+      const step = (el.volume || 0.35) / 18;
+      el._fade = setInterval(() => {
+        if (el.volume <= step) {
+          el.volume = 0;
+          try { el.pause(); el.currentTime = 0; } catch (e) {}
+          clearInterval(el._fade);
+          el._fade = null;
+        } else {
+          el.volume -= step;
+        }
+      }, 70);
+    });
     _sceneMusicCurrentKey = null;
-    const a = _sceneMusicEl;
-    if (a._fade) { clearInterval(a._fade); a._fade = null; }
-    const step = (a.volume || 0.35) / 18;
-    a._fade = setInterval(() => {
-      if (a.volume <= step) { a.volume = 0; a.pause(); clearInterval(a._fade); a._fade = null; }
-      else a.volume -= step;
-    }, 70);
   }
 
   // Map of scene "key" → audio key. CURRENT_STOP drives stop congrats.
