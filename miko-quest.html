@@ -2455,7 +2455,7 @@
       <span id="stopCardRiddle"></span>
     </div>
     <div class="password-row">
-      <input type="text" class="password-input" id="passwordInput" placeholder="enter the seal" autocomplete="off" autocapitalize="characters" inputmode="numeric">
+      <input type="text" class="password-input" id="passwordInput" placeholder="enter the seal" value="" autocomplete="off" autocapitalize="characters" inputmode="numeric" autocorrect="off" spellcheck="false" data-1p-ignore="true" data-lpignore="true" data-form-type="other">
       <button class="password-submit" id="stopSubmitBtn">SPEAK</button>
     </div>
     <div class="password-feedback" id="passwordFeedback"></div>
@@ -3686,6 +3686,15 @@
   document.addEventListener('visibilitychange', () => { if (document.hidden) saveProgress(); });
   // Restore once DOM is ready
   document.addEventListener('DOMContentLoaded', () => {
+    // Defeat Safari/Chrome form autofill on the password input: give it a
+    // unique random name on every page load so the browser can't match
+    // any previously stored value (would happen during testing and bleed
+    // into the next visit, pre-filling the password for Miko).
+    const _seal = document.getElementById('passwordInput');
+    if (_seal) {
+      _seal.setAttribute('name', 'seal_' + Math.random().toString(36).slice(2, 11));
+      _seal.value = '';
+    }
     // Dev panel: only visible when URL contains ?dev. For Miko's actual
     // birthday playthrough, open the URL without ?dev and the panel is
     // removed from the DOM entirely (so he can't accidentally tap one).
@@ -3774,7 +3783,9 @@
     }
     document.getElementById('stopCardLore').innerHTML = s.lore;
     document.getElementById('stopCardRiddle').textContent = s.riddle;
-    document.getElementById('passwordInput').value = '';
+    const _pi = document.getElementById('passwordInput');
+    _pi.value = '';
+    try { _pi.blur(); } catch (e) {}
     document.getElementById('passwordFeedback').textContent = '';
     document.getElementById('stopSubmitBtn').onclick = () => checkPassword(stopId);
     show('scene-stop');
